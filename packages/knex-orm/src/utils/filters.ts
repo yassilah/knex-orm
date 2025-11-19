@@ -1,11 +1,11 @@
 import type { Knex } from 'knex'
 import type { FieldFilter, FilterQuery } from '../types/query'
 import type { RelationDefinition, Schema, TableNames } from '../types/schema'
-import type { Operator } from '../utils/operators'
+import type { Operator } from './operators'
 import { hash } from 'ohash'
-import { getCollection, getColumns, getPrimaryKey, getRelations } from '../utils/collections'
-import { OPERATORS } from '../utils/operators'
-import { isHasMany, isHasOne, isManyToMany } from '../utils/relations'
+import { getCollection, getColumns, getPrimaryKey, getRelations } from './collections'
+import { OPERATORS } from './operators'
+import { isHasMany, isHasOne, isManyToMany } from './relations'
 
 export type { FieldFilter, FilterQuery } from '../types/query'
 

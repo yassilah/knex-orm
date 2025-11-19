@@ -3,7 +3,7 @@ import type { MutationOptions } from './types/orm'
 import type { ColumnSelection, ColumnSelectionResult, FilterQuery, FindQueryParams } from './types/query'
 import type { CollectionDefinition, Schema, TableNames, TablePrimaryKeyValue, TableRecord, TableRecordInput } from './types/schema'
 import { knex } from 'knex'
-import { SchemaMigrator } from './migrations/schema-migrator'
+import { migrateSchema, planMigrations } from './utils/migrations'
 import * as queries from './utils/queries'
 
 /**
@@ -18,8 +18,6 @@ export function createInstance<S extends Schema>(schema: S, knexConfig: Knex.Con
  * Create a new instance of the ORM with a pre-configured Knex instance.
  */
 export function createInstanceWithKnex<S extends Schema>(schema: S, knexInstance: Knex) {
-   const migrator = new SchemaMigrator(knexInstance)
-
    function find<N extends TableNames<S>, Columns extends ColumnSelection<S, N> | undefined = undefined>(
       tableName: N,
       params?: FindQueryParams<S, N, Columns>,
@@ -116,10 +114,10 @@ export function createInstanceWithKnex<S extends Schema>(schema: S, knexInstance
       remove,
       removeOne,
       async migrate() {
-         return migrator.migrate(schema)
+         return migrateSchema(knexInstance, schema)
       },
       async planMigrations() {
-         return migrator.plan(schema)
+         return planMigrations(knexInstance, schema)
       },
       async destroy() {
          await knexInstance.destroy()

@@ -1,6 +1,6 @@
 import type { Knex } from 'knex'
-import type { FilterQuery } from '../query'
 import type { MutationOptions } from '../types/orm'
+import type { FilterQuery } from '../types/query'
 import type { CollectionDefinition, RelationDefinition, Schema, TableNames, TablePrimaryKeyValue, TableRecord, TableRecordInput } from '../types/schema'
 import { getPrimaryKey, getRelations } from './collections'
 import { toArray } from './misc'

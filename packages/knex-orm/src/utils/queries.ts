@@ -2,12 +2,45 @@ import type { Knex } from 'knex'
 import type { MutationOptions } from '../types/orm'
 import type { ColumnSelection, ColumnSelectionResult, FilterQuery, FindQueryParams } from '../types/query'
 import type { CollectionDefinition, Schema, TableNames, TablePrimaryKeyValue, TableRecord, TableRecordInput } from '../types/schema'
-import { applyFilters, applyQueryOptions } from '../query'
 import { getCollection, getColumns, getPrimaryKey, getRelations } from './collections'
+import { applyFilters } from './filters'
 import { clientSupportsReturning } from './misc'
 import { handleBelongsToRelations, handleChildRelationsOnCreate, handleChildRelationsOnUpdate, partitionRecord } from './mutations'
 import { isHasMany, isHasOne, isManyToMany } from './relations'
 import { runInTransaction } from './transactions'
+
+type QueryOptionsSlice<S extends Schema, N extends TableNames<S>> = Pick<FindQueryParams<S, N>, 'orderBy' | 'limit' | 'offset'>
+
+/**
+ * Apply query options (orderBy, limit, offset) to a query builder.
+ */
+function applyQueryOptions<S extends Schema, N extends TableNames<S>, TRecord extends Record<string, unknown>>(qb: Knex.QueryBuilder<TRecord, TRecord[]>, options?: QueryOptionsSlice<S, N>): Knex.QueryBuilder<TRecord, TRecord[]> {
+   if (!options) {
+      return qb
+   }
+
+   const { orderBy, limit, offset } = options
+
+   if (orderBy?.length) {
+      orderBy.forEach((entry: string) => {
+         const direction = entry.startsWith('-') ? 'desc' : 'asc'
+         const path = direction === 'desc' ? entry.slice(1) : entry
+         const column = path.split('.')[0]
+         if (!column) return
+         qb.orderBy(column, direction)
+      })
+   }
+
+   if (typeof limit === 'number') {
+      qb.limit(limit)
+   }
+
+   if (typeof offset === 'number') {
+      qb.offset(offset)
+   }
+
+   return qb
+}
 
 /**
  * Query builder.
