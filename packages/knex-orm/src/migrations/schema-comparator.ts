@@ -1,5 +1,6 @@
 import type { Knex } from 'knex'
 import type { CollectionDefinition, ColumnDefinition, Schema } from '../types/schema'
+import { getDataTypeCreator } from '../data-types'
 import { getColumns } from '../utils/collections'
 
 export type SchemaOperation
@@ -17,46 +18,10 @@ export type SchemaOperation
          definition: ColumnDefinition
       }
 
-function applyColumnDefinition(table: Knex.CreateTableBuilder | Knex.AlterTableBuilder, columnName: string, definition: ColumnDefinition) {
-   let column: Knex.ColumnBuilder
+function applyColumnDefinition(knex: Knex, tableBuilder: Knex.CreateTableBuilder | Knex.AlterTableBuilder, name: string, definition: ColumnDefinition) {
+   const columnCreator = getDataTypeCreator(definition.type)
 
-   switch (definition.type) {
-      case 'string':
-      case 'text':
-         column = table.string(columnName)
-         break
-      case 'integer':
-         column = definition.increments
-            ? table.increments(columnName)
-            : table.integer(columnName)
-         break
-      case 'bigint':
-         column = table.bigInteger(columnName)
-         break
-      case 'float':
-         column = table.float(columnName)
-         break
-      case 'decimal':
-         column = table.decimal(columnName)
-         break
-      case 'boolean':
-         column = table.boolean(columnName)
-         break
-      case 'date':
-         column = table.date(columnName)
-         break
-      case 'datetime':
-         column = table.dateTime(columnName)
-         break
-      case 'json':
-         column = table.json(columnName)
-         break
-      case 'uuid':
-         column = table.uuid(columnName)
-         break
-      default:
-         column = table.specificType(columnName, definition.type)
-   }
+   const column = columnCreator(tableBuilder, name, definition, knex, false)
 
    if (definition.primary) {
       column.primary()
@@ -73,8 +38,8 @@ function applyColumnDefinition(table: Knex.CreateTableBuilder | Knex.AlterTableB
       column.nullable()
    }
 
-   if (definition.defaultTo !== undefined) {
-      column.defaultTo(definition.defaultTo)
+   if (definition.default !== undefined) {
+      column.defaultTo(definition.default)
    }
 
    if (definition.references) {
@@ -150,27 +115,27 @@ export class SchemaComparator {
             await this.knex.schema.createTable(
                operation.tableName,
                (table) => {
-                  // Schema is required to infer belongsTo foreign key columns
+                  // Schema is required to infer belongs-to foreign key columns
                   if (!schema) {
-                     throw new Error(`Schema is required to create table ${operation.tableName} (needed for belongsTo column inference)`)
+                     throw new Error(`Schema is required to create table ${operation.tableName} (needed for belongs-to column inference)`)
                   }
                   const columns = getColumns(operation.collection, schema)
 
                   Object.entries(columns).forEach(
                      ([column, definition]) =>
-                        applyColumnDefinition(table, column, definition),
+                        applyColumnDefinition(this.knex, table, column, definition),
                   )
                },
             )
             break
          case 'addColumn':
             await this.knex.schema.alterTable(operation.table, (table) => {
-               applyColumnDefinition(table, operation.column, operation.definition)
+               applyColumnDefinition(this.knex, table, operation.column, operation.definition)
             })
             break
          case 'alterColumn':
             await this.knex.schema.alterTable(operation.table, (table) => {
-               applyColumnDefinition(table, operation.column, operation.definition)
+               applyColumnDefinition(this.knex, table, operation.column, operation.definition)
             })
             break
          default:

@@ -1,67 +1,56 @@
+import type { DataType, DataTypes } from '../data-types'
 import type { DeepPartial, Prettify } from './helpers'
 
-export type ColumnDataType
-   = | 'string'
-      | 'text'
-      | 'integer'
-      | 'bigint'
-      | 'float'
-      | 'decimal'
-      | 'boolean'
-      | 'date'
-      | 'datetime'
-      | 'json'
-      | 'uuid'
-
-export interface ColumnDefinition {
-   type: ColumnDataType
-   primary?: boolean
-   nullable?: boolean
+export interface BaseFieldDefinition {
    unique?: boolean
-   defaultTo?: unknown
+   nullable?: boolean
+   default?: unknown
+   precision?: number
+   scale?: number
+   length?: number
+   options?: string[]
    increments?: boolean
-   references?: { table: string, column: string, onDelete?: string }
+   references?: {
+      table: string
+      column: string
+      onDelete?: RelationAction
+      onUpdate?: RelationAction
+   }
 }
 
-export type ColumnTypeToTS<T extends ColumnDataType>
-   = T extends 'string' | 'text' | 'uuid'
-      ? string
-      : T extends 'integer' | 'bigint' | 'float' | 'decimal'
-         ? number
-         : T extends 'boolean'
-            ? boolean
-            : T extends 'date' | 'datetime'
-               ? string
-               : T extends 'json'
-                  ? unknown
-                  : unknown
+export type RelationAction = 'CASCADE' | 'RESTRICT' | 'NO ACTION' | 'SET NULL' | 'SET DEFAULT'
+
+export interface ColumnDefinition extends BaseFieldDefinition {
+   type: DataTypes
+   primary?: boolean
+}
 
 export type InferColumnType<T extends ColumnDefinition> = T['nullable'] extends true
-   ? ColumnTypeToTS<T['type']> | null
-   : ColumnTypeToTS<T['type']>
+   ? DataType<T['type']> | null
+   : DataType<T['type']>
 
-export type RelationKind = 'hasOne' | 'hasMany' | 'belongsTo' | 'manyToMany'
+export type RelationKind = 'has-one' | 'has-many' | 'belongs-to' | 'many-to-many'
 
-export interface BaseRelationDefinition {
+export interface BaseRelationDefinition extends BaseFieldDefinition {
    type: RelationKind
    target: string
    foreignKey: string
 }
 
 export interface HasOneRelationDefinition extends BaseRelationDefinition {
-   type: 'hasOne'
+   type: 'has-one'
 }
 
 export interface HasManyRelationDefinition extends BaseRelationDefinition {
-   type: 'hasMany'
+   type: 'has-many'
 }
 
 export interface BelongsToRelationDefinition extends BaseRelationDefinition {
-   type: 'belongsTo'
+   type: 'belongs-to'
 }
 
 export interface ManyToManyRelationDefinition extends BaseRelationDefinition {
-   type: 'manyToMany'
+   type: 'many-to-many'
    through: {
       table: string
       sourceFk: string
@@ -79,12 +68,12 @@ export type Schema = Record<string, CollectionDefinition>
 
 export type TableNames<S extends Schema> = keyof S & string
 
-// belongsTo relations are columns - the relation name IS the column name
+// belongs-to relations are columns - the relation name IS the column name
 export type TableColumnNames<S extends Schema, T extends TableNames<S>> = {
    [K in keyof S[T]]: S[T][K] extends ColumnDefinition | BelongsToRelationDefinition ? K : never
 }[keyof S[T]] & string
 
-// Relations exclude belongsTo (since belongsTo is a column)
+// Relations exclude belongs-to (since belongs-to is a column)
 export type TableRelationNames<S extends Schema, T extends TableNames<S>> = {
    [K in keyof S[T]]: S[T][K] extends RelationDefinition
       ? S[T][K] extends BelongsToRelationDefinition
@@ -143,9 +132,9 @@ export type InferRecordFromColumns<TColumns extends Record<string, ColumnDefinit
 export type InferRelationType<
    S extends Schema,
    T extends RelationDefinition,
-> = T['type'] extends 'hasOne' | 'belongsTo'
+> = T['type'] extends 'has-one' | 'belongs-to'
    ? TableRecord<S, T['target']> | InferColumnType<RelationForeignKeyColumn<S, T>>
-   : T['type'] extends 'hasMany' | 'manyToMany'
+   : T['type'] extends 'has-many' | 'many-to-many'
       ? InferColumnType<RelationForeignKeyColumn<S, T>>[] | TableRecord<S, T['target']>[]
       : never
 

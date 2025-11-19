@@ -11,24 +11,23 @@ export function isColumn(field: FieldDefinition): field is ColumnDefinition {
  * Type guard to check if a field is a relation definition
  */
 export function isRelation(field: FieldDefinition): field is RelationDefinition {
-   const relationTypes = ['hasOne', 'hasMany', 'belongsTo', 'manyToMany']
+   const relationTypes = ['has-one', 'has-many', 'belongs-to', 'many-to-many']
    return 'type' in field && relationTypes.includes(field.type as string)
 }
 
 /**
  * Extract columns from a collection definition
- * belongsTo relations are treated as columns (the relation name IS the column name)
+ * belongs-to relations are treated as columns (the relation name IS the column name)
  */
 export function getColumns<S extends Schema>(collection: CollectionDefinition, schema?: S): Record<string, ColumnDefinition> {
    const columns: Record<string, ColumnDefinition> = {}
 
    for (const [key, field] of Object.entries(collection)) {
       if (isColumn(field)) {
-         // Regular column
          columns[key] = field
       }
-      else if (isRelation(field) && field.type === 'belongsTo') {
-         // belongsTo relation IS a column - use the relation name as column name
+      else if (isRelation(field) && field.type === 'belongs-to') {
+         // belongs-to relation IS a column - use the relation name as column name
          const belongsTo = field as BelongsToRelationDefinition
 
          if (schema) {
@@ -61,12 +60,12 @@ export function getColumns<S extends Schema>(collection: CollectionDefinition, s
 
 /**
  * Extract relations from a collection definition
- * Excludes belongsTo relations (since they are columns)
+ * Excludes belongs-to relations (since they are columns)
  */
 export function getRelations(collection: CollectionDefinition): Record<string, RelationDefinition> {
    const relations: Record<string, RelationDefinition> = {}
    for (const [key, field] of Object.entries(collection)) {
-      if (isRelation(field) && field.type !== 'belongsTo') {
+      if (isRelation(field) && field.type !== 'belongs-to') {
          relations[key] = field
       }
    }

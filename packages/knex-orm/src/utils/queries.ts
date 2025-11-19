@@ -6,7 +6,7 @@ import { applyFilters, applyQueryOptions } from '../query'
 import { getCollection, getColumns, getPrimaryKey, getRelations } from './collections'
 import { clientSupportsReturning } from './misc'
 import { handleBelongsToRelations, handleChildRelationsOnCreate, handleChildRelationsOnUpdate, partitionRecord } from './mutations'
-import { isHasMany, isHasOne, isManyToMany } from './relationts'
+import { isHasMany, isHasOne, isManyToMany } from './relations'
 import { runInTransaction } from './transactions'
 
 /**

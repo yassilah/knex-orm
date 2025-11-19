@@ -35,7 +35,7 @@ export const users = defineCollection({
     profile_id: { type: 'uuid' },
   },
   relations: {
-    profile: { type: 'hasOne', target: 'profiles', foreignKey: 'user_id' },
+    profile: { type: 'has-one', target: 'profiles', foreignKey: 'user_id' },
   },
 });
 ```
@@ -67,12 +67,12 @@ Include relational payloads inside create/update calls:
 ```ts
 await usersRepo.createOne({
   email: 'a@b.com',
-  profile: { displayName: 'Ada' }, // hasOne
-  posts: [{ title: 'Hello' }],     // hasMany
+  profile: { displayName: 'Ada' }, // has-one
+  posts: [{ title: 'Hello' }],     // has-many
 });
 ```
 
-`belongsTo` relations run before inserts, while `hasOne`/`hasMany`/`manyToMany` execute after the parent row is persisted.
+`belongs-to` relations run before inserts, while `has-one`/`has-many`/`many-to-many` execute after the parent row is persisted.
 
 ## Schema Migrations
 

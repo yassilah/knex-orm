@@ -4,26 +4,26 @@ import type { BelongsToRelationDefinition, HasManyRelationDefinition, HasOneRela
  * Check if a relation is a many-to-many relation.
  */
 export function isManyToMany(relation: RelationDefinition): relation is ManyToManyRelationDefinition {
-   return relation.type === 'manyToMany'
+   return relation.type === 'many-to-many'
 }
 
 /**
  * Check if a relation is a has one relation.
  */
 export function isHasOne(relation: RelationDefinition): relation is HasOneRelationDefinition {
-   return relation.type === 'hasOne'
+   return relation.type === 'has-one'
 }
 
 /**
  * Check if a relation is a has many relation.
  */
 export function isHasMany(relation: RelationDefinition): relation is HasManyRelationDefinition {
-   return relation.type === 'hasMany'
+   return relation.type === 'has-many'
 }
 
 /**
  * Check if a relation is a belongs to relation.
  */
 export function isBelongsTo(relation: RelationDefinition): relation is BelongsToRelationDefinition {
-   return relation.type === 'belongsTo'
+   return relation.type === 'belongs-to'
 }

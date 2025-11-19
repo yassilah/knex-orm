@@ -1,11 +1,11 @@
 import type { Knex } from 'knex'
 import type { FilterQuery } from '../query'
 import type { MutationOptions } from '../types/orm'
-import type { BelongsToRelationDefinition, CollectionDefinition, RelationDefinition, Schema, TableNames, TablePrimaryKeyValue, TableRecord, TableRecordInput } from '../types/schema'
+import type { CollectionDefinition, RelationDefinition, Schema, TableNames, TablePrimaryKeyValue, TableRecord, TableRecordInput } from '../types/schema'
 import { getPrimaryKey, getRelations } from './collections'
 import { toArray } from './misc'
 import { create, createOne, findOne, remove, updateOne } from './queries'
-import { isManyToMany } from './relationts'
+import { isManyToMany } from './relations'
 
 interface RelationPayload {
    name: string
@@ -69,7 +69,7 @@ export async function upsertTargetRecord<S extends Schema, N extends TableNames<
  * Handle belongs to relations.
  */
 export async function handleBelongsToRelations<S extends Schema>(knex: Knex, schema: S, relations: RelationPayload[], scalar: Record<string, unknown>, options: MutationOptions) {
-   const belongsToRelations = relations.filter(({ definition }) => definition.type === 'belongsTo')
+   const belongsToRelations = relations.filter(({ definition }) => definition.type === 'belongs-to')
 
    for (const relation of belongsToRelations) {
       if (!relation.value) continue
@@ -86,7 +86,7 @@ export async function handleBelongsToRelations<S extends Schema>(knex: Knex, sch
       const record = await upsertTargetRecord(knex, schema, targetName, payload, options, targetPk)
 
       const recordAny = record as any
-      // belongsTo relation name IS the column name
+      // belongs-to relation name IS the column name
       scalar[relation.name] = recordAny[targetPk]
    }
 }
@@ -101,7 +101,7 @@ export async function handleChildRelationsOnCreate<S extends Schema>(knex: Knex,
    if (parentPkValue === undefined) return
 
    for (const relation of relations) {
-      if (relation.definition.type === 'belongsTo' || !relation.value) continue
+      if (relation.definition.type === 'belongs-to' || !relation.value) continue
 
       const targetName = relation.definition.target
       const payloads = toArray(relation.value) as TableRecordInput<S, TableNames<S>>[]
@@ -154,7 +154,7 @@ export async function handleChildRelationsOnUpdate<S extends Schema>(knex: Knex,
    if (parentPkValue === undefined) return
 
    for (const relation of relations) {
-      if (relation.definition.type === 'belongsTo' || !relation.value) continue
+      if (relation.definition.type === 'belongs-to' || !relation.value) continue
 
       const targetName = relation.definition.target
       const targetMeta = schema[targetName]

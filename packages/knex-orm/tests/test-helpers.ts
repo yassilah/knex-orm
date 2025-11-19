@@ -5,12 +5,12 @@ import { createInstance, createInstanceWithKnex, defineCollection } from '../src
 export const schema = {
    users: defineCollection({
       id: { type: 'integer', primary: true, increments: true },
-      email: { type: 'string', unique: true, nullable: false },
-      status: { type: 'string', nullable: true },
-      posts: { type: 'hasMany', target: 'posts', foreignKey: 'author' },
-      profile: { type: 'hasOne', target: 'profiles', foreignKey: 'user' },
+      email: { type: 'varchar', unique: true, nullable: false },
+      status: { type: 'varchar', nullable: true },
+      posts: { type: 'has-many', target: 'posts', foreignKey: 'author' },
+      profile: { type: 'has-one', target: 'profiles', foreignKey: 'user' },
       roles: {
-         type: 'manyToMany',
+         type: 'many-to-many',
          target: 'roles',
          foreignKey: 'id',
          through: { table: 'user_roles', sourceFk: 'user', targetFk: 'role' },
@@ -18,16 +18,16 @@ export const schema = {
    }),
    profiles: defineCollection({
       id: { type: 'integer', primary: true, increments: true },
-      display_name: { type: 'string', nullable: false },
-      user: { type: 'belongsTo', target: 'users', foreignKey: 'id' },
+      display_name: { type: 'varchar', nullable: false },
+      user: { type: 'belongs-to', target: 'users', foreignKey: 'id' },
    }),
    posts: defineCollection({
       id: { type: 'integer', primary: true, increments: true },
-      title: { type: 'string', nullable: false },
-      slug: { type: 'string', nullable: false, unique: true },
-      author: { type: 'belongsTo', target: 'users', foreignKey: 'id' },
+      title: { type: 'varchar', nullable: false },
+      slug: { type: 'varchar', nullable: false, unique: true },
+      author: { type: 'belongs-to', target: 'users', foreignKey: 'id' },
       tags: {
-         type: 'manyToMany',
+         type: 'many-to-many',
          target: 'tags',
          foreignKey: 'id',
          through: {
@@ -39,18 +39,18 @@ export const schema = {
    }),
    tags: defineCollection({
       id: { type: 'integer', primary: true, increments: true },
-      name: { type: 'string', nullable: false, unique: true },
+      name: { type: 'varchar', nullable: false, unique: true },
    }),
    post_tags: defineCollection({
       id: { type: 'integer', primary: true, increments: true },
-      post: { type: 'belongsTo', target: 'posts', foreignKey: 'id' },
-      tag: { type: 'belongsTo', target: 'tags', foreignKey: 'id' },
+      post: { type: 'belongs-to', target: 'posts', foreignKey: 'id' },
+      tag: { type: 'belongs-to', target: 'tags', foreignKey: 'id' },
    }),
    roles: defineCollection({
       id: { type: 'integer', primary: true, increments: true },
-      name: { type: 'string', nullable: false, unique: true },
+      name: { type: 'varchar', nullable: false, unique: true },
       policies: {
-         type: 'manyToMany',
+         type: 'many-to-many',
          target: 'policies',
          foreignKey: 'id',
          through: {
@@ -62,14 +62,14 @@ export const schema = {
    }),
    user_roles: defineCollection({
       id: { type: 'integer', primary: true, increments: true },
-      user: { type: 'belongsTo', target: 'users', foreignKey: 'id' },
-      role: { type: 'belongsTo', target: 'roles', foreignKey: 'id' },
+      user: { type: 'belongs-to', target: 'users', foreignKey: 'id' },
+      role: { type: 'belongs-to', target: 'roles', foreignKey: 'id' },
    }),
    policies: defineCollection({
       id: { type: 'integer', primary: true, increments: true },
-      name: { type: 'string', nullable: false, unique: true },
+      name: { type: 'varchar', nullable: false, unique: true },
       permissions: {
-         type: 'manyToMany',
+         type: 'many-to-many',
          target: 'permissions',
          foreignKey: 'id',
          through: {
@@ -81,22 +81,22 @@ export const schema = {
    }),
    role_policies: defineCollection({
       id: { type: 'integer', primary: true, increments: true },
-      role: { type: 'belongsTo', target: 'roles', foreignKey: 'id' },
-      policy: { type: 'belongsTo', target: 'policies', foreignKey: 'id' },
+      role: { type: 'belongs-to', target: 'roles', foreignKey: 'id' },
+      policy: { type: 'belongs-to', target: 'policies', foreignKey: 'id' },
    }),
    permissions: defineCollection({
       id: { type: 'integer', primary: true, increments: true },
-      name: { type: 'string', nullable: false, unique: true },
+      name: { type: 'varchar', nullable: false, unique: true },
    }),
    policy_permissions: defineCollection({
       id: { type: 'integer', primary: true, increments: true },
       policy: {
-         type: 'belongsTo',
+         type: 'belongs-to',
          target: 'policies',
          foreignKey: 'id',
       },
       permission: {
-         type: 'belongsTo',
+         type: 'belongs-to',
          target: 'permissions',
          foreignKey: 'id',
       },

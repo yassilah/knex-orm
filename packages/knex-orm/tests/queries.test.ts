@@ -394,7 +394,7 @@ testAllDrivers('comprehensive instance methods tests (%s)', (driver) => {
          expect(results[2]?.email).toBe('user3@example.com')
       })
 
-      it('should create record with belongsTo relation', async () => {
+      it('should create record with belongs-to relation', async () => {
          const user = await orm.createOne('users', {
             email: 'user1@example.com',
             status: 'active',
@@ -411,7 +411,7 @@ testAllDrivers('comprehensive instance methods tests (%s)', (driver) => {
          expect(profile[0]?.display_name).toBe('Test User')
       })
 
-      it('should create record with hasOne relation', async () => {
+      it('should create record with has-one relation', async () => {
          const results = await orm.create('users', [
             {
                email: 'user1@example.com',
@@ -429,7 +429,7 @@ testAllDrivers('comprehensive instance methods tests (%s)', (driver) => {
          expect(profile?.display_name).toBe('Test User')
       })
 
-      it('should create record with hasMany relation', async () => {
+      it('should create record with has-many relation', async () => {
          const results = await orm.create('users', [
             {
                email: 'user1@example.com',
@@ -450,7 +450,7 @@ testAllDrivers('comprehensive instance methods tests (%s)', (driver) => {
          expect(posts[1]?.title).toBe('Post 2')
       })
 
-      it('should create record with manyToMany relation', async () => {
+      it('should create record with many-to-many relation', async () => {
          const results = await orm.create('users', [
             {
                email: 'user1@example.com',
@@ -472,7 +472,7 @@ testAllDrivers('comprehensive instance methods tests (%s)', (driver) => {
          expect(userRoles).toHaveLength(2)
       })
 
-      it('should create record with nested manyToMany relation', async () => {
+      it('should create record with nested many-to-many relation', async () => {
          const user = await orm.createOne('users', {
             email: 'user1@example.com',
             status: 'active',
@@ -567,7 +567,7 @@ testAllDrivers('comprehensive instance methods tests (%s)', (driver) => {
          expect(result.id).toBeDefined()
       })
 
-      it('should create record with hasOne relation', async () => {
+      it('should create record with has-one relation', async () => {
          const result = await orm.createOne('users', {
             email: 'user1@example.com',
             status: 'active',
@@ -582,7 +582,7 @@ testAllDrivers('comprehensive instance methods tests (%s)', (driver) => {
          expect(profile?.display_name).toBe('Test User')
       })
 
-      it('should create record with hasMany relation', async () => {
+      it('should create record with has-many relation', async () => {
          const result = await orm.createOne('users', {
             email: 'user1@example.com',
             status: 'active',
@@ -599,7 +599,7 @@ testAllDrivers('comprehensive instance methods tests (%s)', (driver) => {
          expect(posts).toHaveLength(2)
       })
 
-      it('should create record with manyToMany relation', async () => {
+      it('should create record with many-to-many relation', async () => {
          const result = await orm.createOne('users', {
             email: 'user1@example.com',
             status: 'active',
@@ -712,7 +712,7 @@ testAllDrivers('comprehensive instance methods tests (%s)', (driver) => {
          expect(updated.every(r => r.status === 'pending')).toBe(true)
       })
 
-      it('should update record with hasOne relation', async () => {
+      it('should update record with has-one relation', async () => {
          const user = await orm.createOne('users', {
             email: 'user1@example.com',
             status: 'active',
@@ -742,7 +742,7 @@ testAllDrivers('comprehensive instance methods tests (%s)', (driver) => {
          expect(updatedProfile?.display_name).toBe('Updated Name')
       })
 
-      it('should update record with hasMany relation', async () => {
+      it('should update record with has-many relation', async () => {
          const user = await orm.createOne('users', {
             email: 'user1@example.com',
             status: 'active',
@@ -771,7 +771,7 @@ testAllDrivers('comprehensive instance methods tests (%s)', (driver) => {
          expect(updatedPost?.title).toBe('Updated Post')
       })
 
-      it('should update record with manyToMany relation', async () => {
+      it('should update record with many-to-many relation', async () => {
          const user = await orm.createOne('users', {
             email: 'user1@example.com',
             status: 'active',
@@ -794,7 +794,7 @@ testAllDrivers('comprehensive instance methods tests (%s)', (driver) => {
          expect(updatedRole?.name).toBe('super-admin')
       })
 
-      it('should update record with nested manyToMany relation', async () => {
+      it('should update record with nested many-to-many relation', async () => {
          const user = await orm.createOne('users', {
             email: 'user1@example.com',
             status: 'active',
@@ -861,7 +861,7 @@ testAllDrivers('comprehensive instance methods tests (%s)', (driver) => {
          expect(result).toBeUndefined()
       })
 
-      it('should update record with hasOne relation', async () => {
+      it('should update record with has-one relation', async () => {
          const user = await orm.createOne('users', {
             email: 'user1@example.com',
             status: 'active',
@@ -892,7 +892,7 @@ testAllDrivers('comprehensive instance methods tests (%s)', (driver) => {
          expect(updatedProfile?.display_name).toBe('Updated Name')
       })
 
-      it('should update record with hasMany relation', async () => {
+      it('should update record with has-many relation', async () => {
          const user = await orm.createOne('users', {
             email: 'user1@example.com',
             status: 'active',
@@ -921,7 +921,7 @@ testAllDrivers('comprehensive instance methods tests (%s)', (driver) => {
          expect(updatedPost?.title).toBe('Updated Post')
       })
 
-      it('should update record with manyToMany relation', async () => {
+      it('should update record with many-to-many relation', async () => {
          const user = await orm.createOne('users', {
             email: 'user1@example.com',
             status: 'active',
@@ -1044,7 +1044,7 @@ testAllDrivers('comprehensive instance methods tests (%s)', (driver) => {
          expect(count).toBe(0)
       })
 
-      it('should remove record with hasOne relation', async () => {
+      it('should remove record with has-one relation', async () => {
          const user = await orm.createOne('users', {
             email: 'user1@example.com',
             status: 'active',
@@ -1062,7 +1062,7 @@ testAllDrivers('comprehensive instance methods tests (%s)', (driver) => {
          expect(foundUser).toBeUndefined()
       })
 
-      it('should remove record with hasMany relation', async () => {
+      it('should remove record with has-many relation', async () => {
          const user = await orm.createOne('users', {
             email: 'user1@example.com',
             status: 'active',
