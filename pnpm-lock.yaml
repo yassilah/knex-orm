@@ -7,6 +7,10 @@ settings:
 importers:
 
   .:
+    dependencies:
+      ohash:
+        specifier: ^2.0.11
+        version: 2.0.11
     devDependencies:
       '@apenhet/eslint-config':
         specifier: ^2.12.5
@@ -1984,6 +1988,9 @@ packages:
   object-keys@1.1.1:
     resolution: {integrity: sha512-NuAESUOUMrlIXOfHKzD6bpPu3tYt3xvjNdRIQ+FeT0lNb4K8WR70CaDxhuNguS2XG+GjkyMwOzsN5ZktImfhLA==}
     engines: {node: '>= 0.4'}
+
+  ohash@2.0.11:
+    resolution: {integrity: sha512-RdR9FQrFwNBNXAr4GixM8YaRZRJ5PUWbKYbE5eOsrwAjJW0q2REGcf79oYPsLyskQCZG1PLN+S/K1V00joZAoQ==}
 
   once@1.4.0:
     resolution: {integrity: sha512-lNaJgI+2Q5URQBkccEKHTQOPaXdUxnZZElQTZY0MFUAuaEqe1E+Nyvgdz/aIyNi6Z9MzO5dv1H8n58/GELp3+w==}
@@ -4853,6 +4860,8 @@ snapshots:
   object-hash@2.2.0: {}
 
   object-keys@1.1.1: {}
+
+  ohash@2.0.11: {}
 
   once@1.4.0:
     dependencies:

@@ -283,7 +283,7 @@ export function find<
       qb.select('*')
    }
 
-   applyFilters<S, N>(qb as unknown as Knex.QueryBuilder, where)
+   applyFilters<S, N>(qb, knex, schema, tableName, where)
    applyQueryOptions<S, N, Selection>(qb, { orderBy: orderBy as any, limit, offset })
 
    return qb
@@ -342,7 +342,7 @@ async function findWithRelations<
    // Add all selects to query
    qb.select(selects)
 
-   applyFilters<S, N>(qb as unknown as Knex.QueryBuilder, where)
+   applyFilters<S, N>(qb, knex, schema, tableName, where)
    applyQueryOptions<S, N, Selection>(qb, { orderBy: orderBy as any, limit, offset })
 
    // Execute query
@@ -484,7 +484,7 @@ export function update<S extends Schema, N extends TableNames<S>>(
 
    return runInTransaction(knex, options, async (trx) => {
       const targets = await builder(knex, tableName, trx)
-         .modify(qb => applyFilters(qb, filter))
+         .modify(qb => applyFilters(qb, knex, schema, tableName, filter))
          .select(primaryKey) as Record<string, unknown>[]
 
       if (!targets.length) return 0
@@ -504,7 +504,7 @@ export function update<S extends Schema, N extends TableNames<S>>(
       )
 
       if (Object.keys(scalar).length) {
-         const qb = builder(knex, tableName, trx).modify(qb => applyFilters(qb, filter))
+         const qb = builder(knex, tableName, trx).modify(qb => applyFilters(qb, knex, schema, tableName, filter))
 
          if (clientSupportsReturning(knex)) {
             await qb.update(scalar, '*')
@@ -570,7 +570,7 @@ export function remove<S extends Schema, N extends TableNames<S>>(
       const primaryKey = getPrimaryKey(collection)
 
       const targets = (await builder(knex, tableName, trx)
-         .modify(qb => applyFilters(qb, filter))
+         .modify(qb => applyFilters(qb, knex, schema, tableName, filter))
          .select(primaryKey)) as Record<string, unknown>[]
 
       if (!targets.length) return 0

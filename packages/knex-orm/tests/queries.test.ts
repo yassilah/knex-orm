@@ -307,6 +307,54 @@ testAllDrivers('comprehensive instance methods tests (%s)', (driver) => {
          expect(results).toHaveLength(2)
          expect(results.every(r => r.status !== null)).toBe(true)
       })
+
+      it('should filter records with nested filters', async () => {
+         await orm.create('users', [
+            { email: 'user1@example.com', status: 'active', posts: [{ title: 'Post 1', slug: 'post-1' }] },
+            { email: 'user2@example.com', status: 'inactive' },
+            {
+               email: 'user3@example.com',
+               status: 'active',
+               roles: [{
+                  name: 'admin',
+                  policies: [{ name: 'manage-users', permissions: [{ name: 'read-users' }] }],
+               }],
+            },
+         ])
+
+         const results1 = await orm.find('users', {
+            where: {
+               status: { $eq: 'active' },
+               posts: {
+                  title: { $eq: 'Post 1' },
+               },
+            },
+         })
+
+         expect(results1).toHaveLength(1)
+         expect(results1[0]?.email).toBe('user1@example.com')
+
+         const results2 = await orm.find('users', {
+            columns: ['id', 'email', 'roles.name', 'roles.policies.name', 'roles.policies.permissions.name'],
+            where: {
+               roles: {
+                  policies: {
+                     permissions: {
+                        name: { $eq: 'read-users' },
+                     },
+                  },
+               },
+            },
+         })
+         expect(results2).toHaveLength(1)
+         expect(results2[0]).toMatchObject({
+            email: 'user3@example.com',
+            roles: [{
+               name: 'admin',
+               policies: [{ name: 'manage-users', permissions: [{ name: 'read-users' }] }],
+            }],
+         })
+      })
    })
 
    describe('findOne', () => {
