@@ -22,6 +22,8 @@ export const OPERATORS = {
    $nbetween: (builder, column, value) => Array.isArray(value) && value.length === 2 ? builder.whereNotBetween(column, value as [any, any]) : builder,
    $null: (builder, column) => builder.whereNull(column),
    $nnull: (builder, column) => builder.whereNotNull(column),
+   $like: (builder, column, value) => builder.whereLike(column, value),
+   $nlike: (builder, column, value) => builder.not.whereLike(column, value),
 } satisfies OperatorsDefinition
 
 interface OperatorsDefinition {

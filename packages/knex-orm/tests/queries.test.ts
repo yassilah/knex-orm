@@ -73,7 +73,7 @@ testAllDrivers('comprehensive instance methods tests (%s)', (driver) => {
          ])
 
          const results = await orm.find('users', {
-            where: { status: { $ne: 'active' } },
+            where: { status: { $neq: 'active' } },
          })
          expect(results).toHaveLength(2)
          expect(results.every(r => r.status !== 'active')).toBe(true)
@@ -115,7 +115,7 @@ testAllDrivers('comprehensive instance methods tests (%s)', (driver) => {
          ])
 
          const results = await orm.find('users', {
-            where: { email: { $like: '%@example.com' } },
+            where: { email: { $endsWith: '%@example.com' } },
          })
          expect(results).toHaveLength(2)
       })
@@ -288,7 +288,7 @@ testAllDrivers('comprehensive instance methods tests (%s)', (driver) => {
          ])
 
          const results = await orm.find('users', {
-            where: { status: { $eq: null } },
+            where: { status: { $null: true } },
          })
          expect(results).toHaveLength(1)
          expect(results[0]?.status).toBeNull()
@@ -302,7 +302,7 @@ testAllDrivers('comprehensive instance methods tests (%s)', (driver) => {
          ])
 
          const results = await orm.find('users', {
-            where: { status: { $ne: null } },
+            where: { status: { $nnull: true } },
          })
          expect(results).toHaveLength(2)
          expect(results.every(r => r.status !== null)).toBe(true)

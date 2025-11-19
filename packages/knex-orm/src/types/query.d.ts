@@ -1,25 +1,14 @@
 /* eslint-disable ts/no-empty-object-type */
+import type { Operator } from '../utils/operators'
 import type { Prettify } from './helpers'
 import type { Schema, TableNames, TableRecord } from './schema'
 
 export type Primitive = string | number | boolean | Date | null | undefined
 
-export type FilterOperator
-   = | '$eq'
-      | '$ne'
-      | '$gt'
-      | '$gte'
-      | '$lt'
-      | '$lte'
-      | '$in'
-      | '$nin'
-      | '$like'
-
-export type FieldFilter
-   = | Primitive
-      | {
-         [K in FilterOperator]?: Primitive | Primitive[];
-      }
+export type FieldFilter = | Primitive
+   | {
+      [K in Operator]?: Primitive | Primitive[];
+   }
 
 export type FilterQuery<S extends Schema, N extends TableNames<S>> = TableRecord<S, N> extends infer TRecord ? {
    [K in keyof TRecord]?: FieldFilter;
