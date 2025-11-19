@@ -1,0 +1,24 @@
+/* Custom styles for the documentation */
+
+:root {
+  --vp-c-brand: #646cff;
+  --vp-c-brand-light: #747bff;
+  --vp-c-brand-lighter: #9499ff;
+  --vp-c-brand-dark: #535bf2;
+  --vp-c-brand-darker: #454ce1;
+}
+
+/* Code block styling */
+.vp-code-group .tabs {
+  border-radius: 8px;
+}
+
+/* Custom styling for examples */
+.example-block {
+  margin: 1rem 0;
+  padding: 1rem;
+  background: var(--vp-c-bg-soft);
+  border-radius: 8px;
+  border-left: 4px solid var(--vp-c-brand);
+}
+
