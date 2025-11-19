@@ -1,5 +1,6 @@
 /* eslint-disable ts/no-empty-object-type */
 import type { Prettify } from './helpers'
+import type { Schema, TableNames, TableRecord } from './schema'
 
 export type Primitive = string | number | boolean | Date | null | undefined
 

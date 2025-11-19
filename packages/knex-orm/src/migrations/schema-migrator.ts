@@ -1,5 +1,5 @@
 import type { Knex } from 'knex'
-import type { CollectionDefinition } from '../types/schema'
+import type { Schema } from '../types/schema'
 import type {
    SchemaOperation,
 } from './schema-comparator'
@@ -19,17 +19,17 @@ export class SchemaMigrator {
    }
 
    async plan(
-      schema: Record<string, CollectionDefinition>,
+      schema: Schema,
    ): Promise<SchemaOperation[]> {
       return this.comparator.diff(schema)
    }
 
    async migrate(
-      schema: Record<string, CollectionDefinition>,
+      schema: Schema,
    ): Promise<MigrationResult> {
       const operations = await this.plan(schema)
       for (const operation of operations) {
-         await this.comparator.applyOperation(operation)
+         await this.comparator.applyOperation(operation, schema)
       }
       return { operations }
    }

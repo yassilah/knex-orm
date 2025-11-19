@@ -1,5 +1,6 @@
 import type { Knex } from 'knex'
-import type { CollectionDefinition, ColumnDefinition } from '../types/schema'
+import type { CollectionDefinition, ColumnDefinition, Schema } from '../types/schema'
+import { getColumns } from '../utils/collections'
 
 export type SchemaOperation
    = | { type: 'createTable', tableName: string, collection: CollectionDefinition }
@@ -99,7 +100,7 @@ export class SchemaComparator {
    }
 
    async diff(
-      schema: Record<string, CollectionDefinition>,
+      schema: Schema,
    ): Promise<SchemaOperation[]> {
       const operations: SchemaOperation[] = []
 
@@ -113,7 +114,8 @@ export class SchemaComparator {
          const columnInfo = await this.getColumnInfo(tableName)
          if (!columnInfo) continue
 
-         Object.entries(collection.columns).forEach(([name, definition]) => {
+         const columns = getColumns(collection, schema)
+         Object.entries(columns).forEach(([name, definition]) => {
             if (!columnInfo[name]) {
                operations.push({
                   type: 'addColumn',
@@ -142,30 +144,22 @@ export class SchemaComparator {
       return operations
    }
 
-   async applyOperation(operation: SchemaOperation): Promise<void> {
+   async applyOperation(operation: SchemaOperation, schema?: Schema): Promise<void> {
       switch (operation.type) {
          case 'createTable':
             await this.knex.schema.createTable(
                operation.tableName,
                (table) => {
-                  Object.entries(operation.collection.columns).forEach(
+                  // Schema is required to infer belongsTo foreign key columns
+                  if (!schema) {
+                     throw new Error(`Schema is required to create table ${operation.tableName} (needed for belongsTo column inference)`)
+                  }
+                  const columns = getColumns(operation.collection, schema)
+
+                  Object.entries(columns).forEach(
                      ([column, definition]) =>
                         applyColumnDefinition(table, column, definition),
                   )
-                  if (operation.collection.timestamps) {
-                     table.timestamps(true, true)
-                  }
-                  operation.collection.indexes?.forEach((index) => {
-                     const name
-                        = index.name
-                           ?? `${operation.tableName}_${index.columns.join('_')}_idx`
-                     if (index.unique) {
-                        table.unique(index.columns, name)
-                     }
-                     else {
-                        table.index(index.columns, name)
-                     }
-                  })
                },
             )
             break

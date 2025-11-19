@@ -45,7 +45,6 @@ export type RelationKind = 'hasOne' | 'hasMany' | 'belongsTo' | 'manyToMany'
 export interface BaseRelationDefinition {
    type: RelationKind
    target: string
-   localKey?: string
    foreignKey: string
 }
 
@@ -72,43 +71,70 @@ export interface ManyToManyRelationDefinition extends BaseRelationDefinition {
 
 export type RelationDefinition = BaseRelationDefinition | ManyToManyRelationDefinition
 
-export interface IndexDefinition {
-   columns: string[]
-   unique?: boolean
-   name?: string
-}
+export type FieldDefinition = ColumnDefinition | RelationDefinition
 
-export interface CollectionDefinition {
-   columns: Record<string, ColumnDefinition>
-   relations?: Record<string, RelationDefinition>
-   indexes?: IndexDefinition[]
-   timestamps?: boolean
-}
+export type CollectionDefinition = Record<string, FieldDefinition>
 
 export type Schema = Record<string, CollectionDefinition>
 
 export type TableNames<S extends Schema> = keyof S & string
 
-export type TableColumns<S extends Schema, T extends TableNames<S>> = S[T]['columns']
-export type TableColumnNames<S extends Schema, T extends TableNames<S>> = keyof S[T]['columns'] & string
+// belongsTo relations are columns - the relation name IS the column name
+export type TableColumnNames<S extends Schema, T extends TableNames<S>> = {
+   [K in keyof S[T]]: S[T][K] extends ColumnDefinition | BelongsToRelationDefinition ? K : never
+}[keyof S[T]] & string
+
+// Relations exclude belongsTo (since belongsTo is a column)
+export type TableRelationNames<S extends Schema, T extends TableNames<S>> = {
+   [K in keyof S[T]]: S[T][K] extends RelationDefinition
+      ? S[T][K] extends BelongsToRelationDefinition
+         ? never
+         : K
+      : never
+}[keyof S[T]] & string
+
 export type TableColumn<
    S extends Schema,
    T extends TableNames<S>,
    K extends TableColumnNames<S, T>,
-> = S[T]['columns'][K] extends infer TColumn extends ColumnDefinition ? TColumn : never
+> = K extends keyof S[T]
+   ? S[T][K] extends ColumnDefinition
+      ? S[T][K]
+      : S[T][K] extends BelongsToRelationDefinition
+         ? S[T][K]['target'] extends TableNames<S>
+            ? S[T][K]['foreignKey'] extends keyof S[S[T][K]['target']]
+               ? S[S[T][K]['target']][S[T][K]['foreignKey']] extends ColumnDefinition
+                  ? S[S[T][K]['target']][S[T][K]['foreignKey']]
+                  : never
+               : never
+            : never
+         : never
+   : never
 
-export type TableRelations<S extends Schema, T extends TableNames<S>> = S[T]['relations']
-export type TableRelationNames<S extends Schema, T extends TableNames<S>> = keyof S[T]['relations'] & string
+export type TableColumns<S extends Schema, T extends TableNames<S>> = {
+   [K in TableColumnNames<S, T>]: TableColumn<S, T, K>
+}
+
 export type TableRelation<
    S extends Schema,
    T extends TableNames<S>,
    K extends TableRelationNames<S, T>,
-> = S[T]['relations'][K] extends infer TRelation extends RelationDefinition ? TRelation : never
+> = S[T][K] extends infer TRelation extends RelationDefinition ? TRelation : never
+
+export type TableRelations<S extends Schema, T extends TableNames<S>> = {
+   [K in TableRelationNames<S, T>]: TableRelation<S, T, K>
+}
 
 export type RelationForeignKeyColumn<
    S extends Schema,
    T extends RelationDefinition,
-> = S[T['target']]['columns'][T['foreignKey']]
+> = T['target'] extends TableNames<S>
+   ? T['foreignKey'] extends keyof S[T['target']]
+      ? S[T['target']][T['foreignKey']] extends ColumnDefinition
+         ? S[T['target']][T['foreignKey']]
+         : never
+      : never
+   : never
 
 export type InferRecordFromColumns<TColumns extends Record<string, ColumnDefinition>> = {
    [K in keyof TColumns]: InferColumnType<TColumns[K]>

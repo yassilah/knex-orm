@@ -1,5 +1,6 @@
 import type { Knex } from 'knex'
 import type { FieldFilter, FilterOperator, FilterQuery, Primitive } from '../types/query'
+import type { Schema, TableNames } from '../types/schema'
 
 export type { FieldFilter, FilterOperator, FilterQuery } from '../types/query'
 
@@ -62,29 +63,34 @@ function applyFieldFilter(qb: Knex.QueryBuilder, column: string, value: FieldFil
    })
 }
 
-export function applyFilters<TRecord extends Record<string, unknown>>(qb: Knex.QueryBuilder, query?: FilterQuery<TRecord>): Knex.QueryBuilder {
+export function applyFilters<S extends Schema, N extends TableNames<S>>(qb: Knex.QueryBuilder, query?: FilterQuery<S, N>): Knex.QueryBuilder {
    if (!query) {
       return qb
    }
 
-   const { $and, $or, ...fields } = query
+   // Extract $and and $or, then get remaining fields
+   const $and = '$and' in query ? query.$and : undefined
+   const $or = '$or' in query ? query.$or : undefined
+   const fields = Object.fromEntries(
+      Object.entries(query).filter(([k]) => k !== '$and' && k !== '$or')
+   ) as Record<string, FieldFilter>
 
    Object.entries(fields).forEach(([column, value]) => {
       if (value === undefined) return
       applyFieldFilter(qb, column, value)
    })
 
-   if ($and?.length) {
+   if (Array.isArray($and) && $and.length) {
       qb.andWhere((builder) => {
-         $and.forEach(nested => applyFilters(builder, nested))
+         $and.forEach((nested: FilterQuery<S, N>) => applyFilters<S, N>(builder, nested))
       })
    }
 
-   if ($or?.length) {
+   if (Array.isArray($or) && $or.length) {
       qb.andWhere((builder) => {
          builder.where((sub) => {
-            $or.forEach((nested) => {
-               sub.orWhere(inner => applyFilters(inner, nested))
+            $or.forEach((nested: FilterQuery<S, N>) => {
+               sub.orWhere(inner => applyFilters<S, N>(inner, nested))
             })
          })
       })

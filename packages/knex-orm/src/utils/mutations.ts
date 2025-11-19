@@ -1,8 +1,8 @@
 import type { Knex } from 'knex'
 import type { FilterQuery } from '../query'
 import type { MutationOptions } from '../types/orm'
-import type { CollectionDefinition, RelationDefinition, Schema, TableNames, TablePrimaryKeyValue, TableRecord, TableRecordInput } from '../types/schema'
-import { getPrimaryKey } from './collections'
+import type { BelongsToRelationDefinition, CollectionDefinition, RelationDefinition, Schema, TableNames, TablePrimaryKeyValue, TableRecord, TableRecordInput } from '../types/schema'
+import { getPrimaryKey, getRelations } from './collections'
 import { toArray } from './misc'
 import { create, createOne, findOne, remove, updateOne } from './queries'
 import { isManyToMany } from './relationts'
@@ -19,7 +19,7 @@ interface RelationPayload {
 export function partitionRecord(collection: CollectionDefinition, record: Record<string, unknown>) {
    const scalar: Record<string, unknown> = {}
    const relations: RelationPayload[] = []
-   const relationMap = collection.relations ?? {}
+   const relationMap = getRelations(collection)
 
    for (const [key, value] of Object.entries(record)) {
       if (relationMap[key]) {
@@ -41,10 +41,11 @@ export function partitionRecord(collection: CollectionDefinition, record: Record
  * Upsert a target record.
  */
 export async function upsertTargetRecord<S extends Schema, N extends TableNames<S>>(knex: Knex, schema: S, tableName: N, payload: TableRecordInput<S, N>, options: MutationOptions, targetPk: string): Promise<TableRecord<S, N>> {
-   const primaryKeyValue = payload[targetPk] as TablePrimaryKeyValue<S, N> | undefined
+   const payloadAny = payload as any
+   const primaryKeyValue = payloadAny[targetPk] as TablePrimaryKeyValue<S, N> | undefined
 
    if (primaryKeyValue !== undefined) {
-      const filters = { [targetPk]: { $eq: payload[targetPk] } } as unknown as FilterQuery<S, N>
+      const filters = { [targetPk]: { $eq: payloadAny[targetPk] } } as unknown as FilterQuery<S, N>
 
       const existing = await findOne(knex, schema, tableName, primaryKeyValue, { trx: options.trx })
 
@@ -84,7 +85,9 @@ export async function handleBelongsToRelations<S extends Schema>(knex: Knex, sch
 
       const record = await upsertTargetRecord(knex, schema, targetName, payload, options, targetPk)
 
-      scalar[relation.definition.foreignKey] = record[targetPk]
+      const recordAny = record as any
+      // belongsTo relation name IS the column name
+      scalar[relation.name] = recordAny[targetPk]
    }
 }
 
@@ -118,10 +121,13 @@ export async function handleChildRelationsOnCreate<S extends Schema>(knex: Knex,
             related.push(record)
          }
 
-         const rows = related.map(record => ({
-            [through.sourceFk]: parentPkValue,
-            [through.targetFk]: record[targetPk],
-         })) as TableRecordInput<S, TableNames<S>>[]
+         const rows = related.map((record) => {
+            const recordAny = record as any
+            return {
+               [through.sourceFk]: parentPkValue,
+               [through.targetFk]: recordAny[targetPk],
+            }
+         }) as TableRecordInput<S, TableNames<S>>[]
 
          if (rows.length) {
             await create(knex, schema, through.table, rows, options)
@@ -169,10 +175,13 @@ export async function handleChildRelationsOnUpdate<S extends Schema>(knex: Knex,
             related.push(record)
          }
 
-         const rows = related.map(record => ({
-            [through.sourceFk]: parentPkValue,
-            [through.targetFk]: record[targetPk],
-         })) as TableRecordInput<S, TableNames<S>>[]
+         const rows = related.map((record) => {
+            const recordAny = record as any
+            return {
+               [through.sourceFk]: parentPkValue,
+               [through.targetFk]: recordAny[targetPk],
+            }
+         }) as TableRecordInput<S, TableNames<S>>[]
 
          if (rows.length) {
             await create(knex, schema, through.table, rows, options)
@@ -185,8 +194,9 @@ export async function handleChildRelationsOnUpdate<S extends Schema>(knex: Knex,
          const foreignKey = relation.definition.foreignKey as keyof TableRecord<S, TableNames<S>>
          Object.assign(payload, { [foreignKey]: parentPkValue })
 
-         if (payload[targetPk] !== undefined) {
-            const filters = { [targetPk]: { $eq: payload[targetPk] } } as unknown as FilterQuery<S, TableNames<S>>
+         const payloadAny = payload as any
+         if (payloadAny[targetPk] !== undefined) {
+            const filters = { [targetPk]: { $eq: payloadAny[targetPk] } } as unknown as FilterQuery<S, TableNames<S>>
             await updateOne(knex, schema, targetName, filters, payload, options)
          }
          else {

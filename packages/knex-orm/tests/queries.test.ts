@@ -225,9 +225,59 @@ testAllDrivers('comprehensive instance methods tests (%s)', (driver) => {
             columns: ['id', 'email'],
          })
          expect(results).toHaveLength(1)
-         expect(results[0]?.email).toBeDefined()
-         expect(results[0]?.id).toBeDefined()
-         // Status might still be present but we're selecting specific columns
+         expect(results[0]).toMatchInlineSnapshot(`
+           {
+             "email": "user1@example.com",
+             "id": 1,
+           }
+         `)
+      })
+
+      it('should support select option to limit columns with nested relations', async () => {
+         await orm.create('users', [
+            {
+               email: 'user1@example.com',
+               status: 'active',
+               profile: {
+                  display_name: 'Test User',
+               },
+               posts: [
+                  { title: 'Post 1', slug: 'post-1' },
+               ],
+               roles: [
+                  { name: 'admin' },
+                  {
+                     name: 'editor',
+                     policies: [{
+                        name: 'manage-users',
+                        permissions: [{
+                           name: 'read-users',
+                        }],
+                     }],
+                  },
+               ],
+            },
+         ])
+
+         const results = await orm.find('users', {
+            columns: ['id', 'email', 'profile.display_name', 'posts.title', 'roles.name', 'roles.policies.name', 'roles.policies.permissions.name'],
+         })
+
+         expect(results).toHaveLength(1)
+         expect(results[0]).toMatchObject({
+            email: 'user1@example.com',
+            id: 1,
+            profile: {
+               display_name: 'Test User',
+            },
+            posts: [
+               { title: 'Post 1' },
+            ],
+            roles: [
+               { name: 'admin' },
+               { name: 'editor', policies: [{ name: 'manage-users', permissions: [{ name: 'read-users' }] }] },
+            ],
+         })
       })
 
       it('should filter records with null values', async () => {
@@ -352,12 +402,12 @@ testAllDrivers('comprehensive instance methods tests (%s)', (driver) => {
 
          const profile = await orm.create('profiles', [
             {
-               user_id: user.id,
+               user: user.id,
                display_name: 'Test User',
             },
          ])
          expect(profile).toHaveLength(1)
-         expect(profile[0]?.user_id).toBe(user.id)
+         expect(profile[0]?.user).toBe(user.id)
          expect(profile[0]?.display_name).toBe('Test User')
       })
 
@@ -373,7 +423,7 @@ testAllDrivers('comprehensive instance methods tests (%s)', (driver) => {
          expect(results[0]?.email).toBe('user1@example.com')
 
          const profile = await orm.findOne('profiles', {
-            where: { user_id: { $eq: results[0]!.id } },
+            where: { user: { $eq: results[0]!.id } },
          })
          expect(profile).toBeDefined()
          expect(profile?.display_name).toBe('Test User')
@@ -393,7 +443,7 @@ testAllDrivers('comprehensive instance methods tests (%s)', (driver) => {
          expect(results).toHaveLength(1)
 
          const posts = await orm.find('posts', {
-            where: { author_id: { $eq: results[0]!.id } },
+            where: { author: { $eq: results[0]!.id } },
          })
          expect(posts).toHaveLength(2)
          expect(posts[0]?.title).toBe('Post 1')
@@ -417,7 +467,7 @@ testAllDrivers('comprehensive instance methods tests (%s)', (driver) => {
          expect(roles).toHaveLength(2)
 
          const userRoles = await orm.find('user_roles', {
-            where: { user_id: { $eq: results[0]!.id } },
+            where: { user: { $eq: results[0]!.id } },
          })
          expect(userRoles).toHaveLength(2)
       })
@@ -430,7 +480,7 @@ testAllDrivers('comprehensive instance methods tests (%s)', (driver) => {
 
          const results = await orm.create('posts', [
             {
-               author_id: user.id,
+               author: user.id,
                title: 'Test Post',
                slug: 'test-post',
                tags: [
@@ -445,7 +495,7 @@ testAllDrivers('comprehensive instance methods tests (%s)', (driver) => {
          expect(tags).toHaveLength(2)
 
          const postTags = await orm.find('post_tags', {
-            where: { post_id: { $eq: results[0]!.id } },
+            where: { post: { $eq: results[0]!.id } },
          })
          expect(postTags).toHaveLength(2)
       })
@@ -471,17 +521,17 @@ testAllDrivers('comprehensive instance methods tests (%s)', (driver) => {
          expect(results).toHaveLength(1)
 
          const profile = await orm.findOne('profiles', {
-            where: { user_id: { $eq: results[0]!.id } },
+            where: { user: { $eq: results[0]!.id } },
          })
          expect(profile).toBeDefined()
 
          const posts = await orm.find('posts', {
-            where: { author_id: { $eq: results[0]!.id } },
+            where: { author: { $eq: results[0]!.id } },
          })
          expect(posts).toHaveLength(1)
 
          const postTags = await orm.find('post_tags', {
-            where: { post_id: { $eq: posts[0]!.id } },
+            where: { post: { $eq: posts[0]!.id } },
          })
          expect(postTags).toHaveLength(2)
       })
@@ -526,7 +576,7 @@ testAllDrivers('comprehensive instance methods tests (%s)', (driver) => {
          expect(result.email).toBe('user1@example.com')
 
          const profile = await orm.findOne('profiles', {
-            where: { user_id: { $eq: result.id } },
+            where: { user: { $eq: result.id } },
          })
          expect(profile).toBeDefined()
          expect(profile?.display_name).toBe('Test User')
@@ -544,7 +594,7 @@ testAllDrivers('comprehensive instance methods tests (%s)', (driver) => {
          expect(result.email).toBe('user1@example.com')
 
          const posts = await orm.find('posts', {
-            where: { author_id: { $eq: result.id } },
+            where: { author: { $eq: result.id } },
          })
          expect(posts).toHaveLength(2)
       })
@@ -564,7 +614,7 @@ testAllDrivers('comprehensive instance methods tests (%s)', (driver) => {
          expect(roles.length).toBeGreaterThanOrEqual(2)
 
          const userRoles = await orm.find('user_roles', {
-            where: { user_id: { $eq: result.id } },
+            where: { user: { $eq: result.id } },
          })
          expect(userRoles.length).toBeGreaterThanOrEqual(2)
       })
@@ -602,12 +652,12 @@ testAllDrivers('comprehensive instance methods tests (%s)', (driver) => {
          expect(result.email).toBe('user1@example.com')
 
          const profile = await orm.findOne('profiles', {
-            where: { user_id: { $eq: result.id } },
+            where: { user: { $eq: result.id } },
          })
          expect(profile).toBeDefined()
 
          const posts = await orm.find('posts', {
-            where: { author_id: { $eq: result.id } },
+            where: { author: { $eq: result.id } },
          })
          expect(posts).toHaveLength(1)
 
@@ -670,7 +720,7 @@ testAllDrivers('comprehensive instance methods tests (%s)', (driver) => {
          })
 
          const profile = await orm.findOne('profiles', {
-            where: { user_id: { $eq: user.id } },
+            where: { user: { $eq: user.id } },
          })
 
          await orm.update('users', {
@@ -687,7 +737,7 @@ testAllDrivers('comprehensive instance methods tests (%s)', (driver) => {
          expect(updatedUser?.email).toBe('updated@example.com')
 
          const updatedProfile = await orm.findOne('profiles', {
-            where: { user_id: { $eq: user.id } },
+            where: { user: { $eq: user.id } },
          })
          expect(updatedProfile?.display_name).toBe('Updated Name')
       })
@@ -702,7 +752,7 @@ testAllDrivers('comprehensive instance methods tests (%s)', (driver) => {
          })
 
          const post = await orm.findOne('posts', {
-            where: { author_id: { $eq: user.id } },
+            where: { author: { $eq: user.id } },
          })
 
          await orm.update('users', {
@@ -751,7 +801,7 @@ testAllDrivers('comprehensive instance methods tests (%s)', (driver) => {
          })
 
          const post = await orm.createOne('posts', {
-            author_id: user.id,
+            author: user.id,
             title: 'Test Post',
             slug: 'test-post',
             tags: [{ name: 'tech' }],
@@ -779,7 +829,7 @@ testAllDrivers('comprehensive instance methods tests (%s)', (driver) => {
          expect(newTag).toBeDefined()
 
          const postTags = await orm.find('post_tags', {
-            where: { post_id: { $eq: post.id } },
+            where: { post: { $eq: post.id } },
          })
          expect(postTags.length).toBeGreaterThanOrEqual(2)
       })
@@ -820,7 +870,7 @@ testAllDrivers('comprehensive instance methods tests (%s)', (driver) => {
 
          const [profile] = await orm.find('profiles', {
             where: {
-               user_id: { $eq: user.id },
+               user: { $eq: user.id },
             },
          })
 
@@ -837,7 +887,7 @@ testAllDrivers('comprehensive instance methods tests (%s)', (driver) => {
          expect(result?.email).toBe('updated@example.com')
 
          const updatedProfile = await orm.findOne('profiles', {
-            where: { user_id: { $eq: user.id } },
+            where: { user: { $eq: user.id } },
          })
          expect(updatedProfile?.display_name).toBe('Updated Name')
       })
@@ -852,7 +902,7 @@ testAllDrivers('comprehensive instance methods tests (%s)', (driver) => {
          })
 
          const post = await orm.findOne('posts', {
-            where: { author_id: { $eq: user.id } },
+            where: { author: { $eq: user.id } },
          })
 
          await orm.updateOne('users', {
