@@ -8,48 +8,48 @@ export default {
    operators: ['$eq', '$neq', '$in', '$nin', '$startsWith', '$nstartsWith', '$endsWith', '$nendsWith', '$contains', '$ncontains', '$null', '$nnull'],
    types: {
       'text': {
-         create: (knex, name) => knex.text(name),
+         create: ({ builder, columnName }) => builder.text(columnName),
          validate: () => z.string(),
       },
       'varchar': {
-         create: (knex, name, def) => knex.string(name, def.length),
-         validate: def => z.string().max(def.length || 255),
+         create: ({ builder, columnName, definition }) => builder.string(columnName, definition.length),
+         validate: ({ definition }) => z.string().max(definition.length || 255),
       },
       'char': {
-         create: (knex, name, def) => knex.string(name, def.length),
-         validate: def => z.string().max(def.length || 255),
+         create: ({ builder, columnName, definition }) => builder.string(columnName, definition.length),
+         validate: ({ definition }) => z.string().max(definition.length || 255),
       },
       'uuid': {
-         create: (knex, name) => knex.uuid(name),
+         create: ({ builder, columnName }) => builder.uuid(columnName),
          validate: () => z.uuid(),
       },
       'enum': {
-         create: (knex, name, def) => knex.enum(name, def.options || []),
-         validate: def => z.enum(def.options || []),
+         create: ({ builder, columnName, definition }) => builder.enum(columnName, definition.options || []),
+         validate: ({ definition }) => z.enum(definition.options || []),
       },
       'enum-array': {
-         create: (knex, name, def, instance) => {
-            if (instance.client.config.client === 'pg') {
-               knex.specificType(name, `${name}_types[]`).defaultTo(instance.raw(`'{${def.options?.join(',')}'::${name}_types[]`))
+         create: async ({ builder, knex, columnName, tableName, definition }) => {
+            if (knex.client.config.client === 'pg') {
+               const enumName = `${tableName}_${columnName}_types`
+               await knex.raw(`CREATE TYPE ${enumName} AS ENUM (${(definition.options || []).map(opt => `'${opt}'`).join(',')})`)
+               return builder.specificType(columnName, `${enumName}[]`)
             }
-            else if (instance.client.config.client === 'mysql2' || instance.client.config.client === 'mysql') {
-               return knex.specificType(name, `enum(${(def.options || []).map(opt => `'${opt}'`).join(',')})`)
+            else if (knex.client.config.client === 'mysql2' || knex.client.config.client === 'mysql') {
+               return builder.specificType(columnName, `enum(${(definition.options || []).map(opt => `'${opt}'`).join(',')})`)
             }
 
-            return knex.text(name).defaultTo('[]')
+            return builder.text(columnName).defaultTo('')
          },
-         validate: def => z.preprocess((value) => {
-            if (typeof value === 'string') {
-               try {
-                  const parsed = JSON.parse(value)
-                  if (Array.isArray(parsed)) return parsed
-               }
-               catch {
-                  return []
-               }
+         remove: async ({ knex, columnName, tableName }) => {
+            if (knex.client.config.client === 'pg') {
+               await knex.raw(`DROP TYPE IF EXISTS ${tableName}_${columnName}_types`)
             }
-            return value
-         }, z.array(z.enum(def.options || [])).transform(arr => JSON.stringify(arr))),
+         },
+         validate: ({ definition }) => z.preprocess((value) => {
+            if (typeof value === 'string') return value.split(',').filter(Boolean)
+            if (Array.isArray(value)) return value.filter(Boolean)
+            return []
+         }, z.array(z.enum(definition.options || [])).transform(arr => arr.join(','))),
       },
    },
 } satisfies DataTypeGroupProps

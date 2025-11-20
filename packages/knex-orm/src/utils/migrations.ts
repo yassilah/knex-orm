@@ -3,29 +3,34 @@ import type { CollectionDefinition, ColumnDefinition, Schema } from '../types/sc
 import { getDataTypeCreator } from '../data-types'
 import { getColumns } from './collections'
 
-export type SchemaOperation
-   = | { type: 'createTable', tableName: string, collection: CollectionDefinition }
-      | {
-         type: 'addColumn'
-         table: string
-         column: string
-         definition: ColumnDefinition
-      }
-      | {
-         type: 'alterColumn'
-         table: string
-         column: string
-         definition: ColumnDefinition
-      }
+export type SchemaOperation = { type: 'createTable', tableName: string, collection: CollectionDefinition }
+   | {
+      type: 'addColumn'
+      table: string
+      column: string
+      definition: ColumnDefinition
+   }
+   | {
+      type: 'alterColumn'
+      table: string
+      column: string
+      definition: ColumnDefinition
+   }
 
 export interface MigrationResult {
    operations: SchemaOperation[]
 }
 
-function applyColumnDefinition(knex: Knex, tableBuilder: Knex.CreateTableBuilder | Knex.AlterTableBuilder, name: string, definition: ColumnDefinition) {
+async function applyColumnDefinition(knex: Knex, builder: Knex.CreateTableBuilder | Knex.AlterTableBuilder, tableName: string, columnName: string, definition: ColumnDefinition) {
    const columnCreator = getDataTypeCreator(definition.type)
 
-   const column = columnCreator(tableBuilder, name, definition, knex, false)
+   const column = await columnCreator({
+      builder,
+      tableName,
+      columnName,
+      definition,
+      knex,
+   })
 
    if (definition.primary) {
       column.primary()
@@ -76,6 +81,7 @@ export async function diffSchema(
 
    for (const [tableName, collection] of Object.entries(schema)) {
       const exists = await knex.schema.hasTable(tableName)
+
       if (!exists) {
          operations.push({ type: 'createTable', tableName, collection })
          continue
@@ -85,6 +91,7 @@ export async function diffSchema(
       if (!columnInfo) continue
 
       const columns = getColumns(collection, schema)
+
       Object.entries(columns).forEach(([name, definition]) => {
          if (!columnInfo[name]) {
             operations.push({
@@ -97,10 +104,8 @@ export async function diffSchema(
          }
 
          const existing = columnInfo[name]
-         if (
-            (definition.nullable === false && existing.nullable)
-            || (definition.nullable !== false && !existing.nullable)
-         ) {
+
+         if ((definition.nullable === false && existing.nullable) || (definition.nullable !== false && !existing.nullable)) {
             operations.push({
                type: 'alterColumn',
                table: tableName,
@@ -120,34 +125,29 @@ export async function diffSchema(
 export async function applyOperation(knex: Knex, operation: SchemaOperation, schema?: Schema): Promise<void> {
    switch (operation.type) {
       case 'createTable':
-         await knex.schema.createTable(
-            operation.tableName,
-            (table) => {
-               // Schema is required to infer belongs-to foreign key columns
-               if (!schema) {
-                  throw new Error(`Schema is required to create table ${operation.tableName} (needed for belongs-to column inference)`)
-               }
-               const columns = getColumns(operation.collection, schema)
+         await knex.schema.createTable(operation.tableName, async (table) => {
+            if (!schema) {
+               throw new Error(`Schema is required to create table ${operation.tableName} (needed for belongs-to column inference)`)
+            }
 
-               Object.entries(columns).forEach(
-                  ([column, definition]) =>
-                     applyColumnDefinition(knex, table, column, definition),
-               )
-            },
-         )
-         break
-      case 'addColumn':
-         await knex.schema.alterTable(operation.table, (table) => {
-            applyColumnDefinition(knex, table, operation.column, operation.definition)
+            const columns = getColumns(operation.collection, schema)
+
+            const promises = Object.entries(columns).map(([column, definition]) =>
+               applyColumnDefinition(knex, table, operation.tableName, column, definition),
+            )
+
+            await Promise.all(promises)
          })
          break
+      case 'addColumn':
       case 'alterColumn':
          await knex.schema.alterTable(operation.table, (table) => {
-            applyColumnDefinition(knex, table, operation.column, operation.definition)
+            applyColumnDefinition(knex, table, operation.table, operation.column, operation.definition)
          })
          break
       default:
-         throw new Error(`Unsupported operation: ${(operation as any).type}`)
+         // @ts-expect-error - operation.type is not typed
+         throw new Error(`Unsupported operation: ${operation.type}`)
    }
 }
 

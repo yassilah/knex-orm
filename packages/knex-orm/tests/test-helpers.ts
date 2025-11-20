@@ -87,6 +87,8 @@ export const schema = {
    permissions: defineCollection({
       id: { type: 'integer', primary: true, increments: true },
       name: { type: 'varchar', nullable: false, unique: true },
+      action: { type: 'enum-array', nullable: true, options: ['read', 'write', 'delete'] },
+      collection: { type: 'belongs-to', nullable: true, target: 'collections', foreignKey: 'id' },
    }),
    policy_permissions: defineCollection({
       id: { type: 'integer', primary: true, increments: true },
@@ -100,6 +102,10 @@ export const schema = {
          target: 'permissions',
          foreignKey: 'id',
       },
+   }),
+   collections: defineCollection({
+      id: { type: 'integer', primary: true, increments: true },
+      name: { type: 'varchar', nullable: false, unique: true },
    }),
 } as const
 

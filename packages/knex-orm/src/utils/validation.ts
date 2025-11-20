@@ -38,10 +38,14 @@ const OPERATOR_VALUE_FACTORIES: Partial<Record<Operator, (base: z.ZodTypeAny) =>
 /**
  * Create a column value schema.
  */
-function createColumnValueSchema(column: ColumnDefinition) {
-   let schema = getDataTypeValidator(column.type)(column)
+function createColumnValueSchema(tableName: string, columnName: string, definition: ColumnDefinition) {
+   let schema = getDataTypeValidator(definition.type)({
+      columnName,
+      tableName,
+      definition,
+   })
 
-   if (column.nullable) {
+   if (definition.nullable) {
       schema = schema.nullable()
    }
 
@@ -51,9 +55,9 @@ function createColumnValueSchema(column: ColumnDefinition) {
 /**
  * Create a field filter schema.
  */
-function createFieldFilterSchema(column: ColumnDefinition) {
-   const base = createColumnValueSchema(column)
-   const operators = getDataTypeOperators(column.type)
+function createFieldFilterSchema(tableName: string, columnName: string, definition: ColumnDefinition) {
+   const base = createColumnValueSchema(tableName, columnName, definition)
+   const operators = getDataTypeOperators(definition.type)
 
    const operatorShape = operators.reduce<Record<string, z.ZodTypeAny>>((shape, operator) => {
       const factory = OPERATOR_VALUE_FACTORIES[operator]
@@ -92,7 +96,7 @@ export function getWhereValidation<S extends Schema, N extends TableNames<S>>(sc
    const shape: Record<string, z.ZodTypeAny> = {}
 
    for (const [columnName, definition] of Object.entries(columns)) {
-      shape[columnName] = createFieldFilterSchema(definition).optional()
+      shape[columnName] = createFieldFilterSchema(tableName, columnName, definition).optional()
    }
 
    for (const [relationName, definition] of Object.entries(relations)) {
@@ -158,7 +162,7 @@ function buildPayloadSchema<S extends Schema, N extends TableNames<S>>(schema: S
    const shape: Record<string, z.ZodTypeAny> = {}
 
    for (const [columnName, definition] of Object.entries(columns)) {
-      const columnSchema = createColumnValueSchema(definition)
+      const columnSchema = createColumnValueSchema(tableName, columnName, definition)
       shape[columnName] = partial || !isColumnRequired(definition)
          ? columnSchema.optional()
          : columnSchema

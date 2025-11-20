@@ -64,6 +64,13 @@ export function getDataTypeCreator<T extends DataTypes>(type: T) {
 }
 
 /**
+ * Get the data type remover for a given data type.
+ */
+export function getDataTypeRemover<T extends DataTypes>(type: T) {
+   return getDataTypeDefinition(type).remove
+}
+
+/**
  * Get the data type operators for a given data type.
  */
 export function getDataTypeOperators<T extends DataTypes>(type: T): Operator[] {
@@ -82,8 +89,9 @@ export interface DataTypeGroupProps {
 export type DataTypeDefinitions = Record<string, DataTypeProps>
 
 export interface DataTypeProps {
-   create: (knex: Knex.CreateTableBuilder | Knex.AlterTableBuilder, name: string, def: FieldDefinition, instance: Knex, isRelational: boolean) => Knex.ColumnBuilder
-   validate: (def: FieldDefinition, type?: 'input' | 'output') => z.ZodTypeAny
+   create: (obj: { knex: Knex, builder: Knex.CreateTableBuilder | Knex.AlterTableBuilder, columnName: string, definition: FieldDefinition, tableName: string }) => Promise<Knex.ColumnBuilder> | Knex.ColumnBuilder
+   remove?: (obj: { knex: Knex, columnName: string, tableName: string }) => Promise<void> | void
+   validate: (obj: { columnName: string, definition: FieldDefinition, tableName: string }) => z.ZodTypeAny
    operators?: Operator[]
 }
 

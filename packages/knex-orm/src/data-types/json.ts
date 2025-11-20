@@ -8,11 +8,11 @@ export default {
    operators: ['$eq', '$neq', '$in', '$nin', '$null', '$nnull'],
    types: {
       json: {
-         create: (knex, name) => knex.json(name),
+         create: ({ builder, columnName }) => builder.json(columnName),
          validate: () => z.any(),
       },
       jsonb: {
-         create: (knex, name) => knex.jsonb(name),
+         create: ({ builder, columnName }) => builder.jsonb(columnName),
          validate: () => z.any(),
       },
    },

@@ -9,11 +9,11 @@ export default {
    operators: ['$eq', '$neq', '$in', '$nin', '$null', '$nnull'],
    types: {
       binary: {
-         create: (knex, name) => knex.binary(name),
+         create: ({ builder, columnName }) => builder.binary(columnName),
          validate: () => z.instanceof(Buffer),
       },
       blob: {
-         create: (knex, name) => knex.binary(name),
+         create: ({ builder, columnName }) => builder.binary(columnName),
          validate: () => z.instanceof(Buffer),
       },
    },
