@@ -1,6 +1,6 @@
 # Filters
 
-Filters allow you to query records based on specific conditions. `@yassi/knex-orm` provides MongoDB-like filter operators for powerful querying.
+Filters allow you to query records based on specific conditions. `@yassidev/knex-orm` provides MongoDB-like filter operators for powerful querying.
 
 ## Basic Filtering
 

@@ -1,6 +1,6 @@
 # Data Types
 
-`@yassi/knex-orm` supports a wide variety of data types that map to SQL column types. This guide covers all available data types and their usage.
+`@yassidev/knex-orm` supports a wide variety of data types that map to SQL column types. This guide covers all available data types and their usage.
 
 ## String Types
 
@@ -140,7 +140,7 @@ avatar: { type: 'binary', nullable: true }
 Here's a comprehensive example using various data types:
 
 ```typescript
-import { defineCollection } from '@yassi/knex-orm'
+import { defineCollection } from '@yassidev/knex-orm'
 
 const schema = {
   products: defineCollection({

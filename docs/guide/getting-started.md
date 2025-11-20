@@ -1,8 +1,8 @@
 # Getting Started
 
-`@yassi/knex-orm` is a TypeScript ORM built on top of [Knex.js](https://knexjs.org/) that provides a type-safe, schema-driven approach to database operations. It supports PostgreSQL, MySQL, and SQLite, and includes automatic migrations, powerful querying, and nested relational mutations.
+`@yassidev/knex-orm` is a TypeScript ORM built on top of [Knex.js](https://knexjs.org/) that provides a type-safe, schema-driven approach to database operations. It supports PostgreSQL, MySQL, and SQLite, and includes automatic migrations, powerful querying, and nested relational mutations.
 
-## What is @yassi/knex-orm?
+## What is @yassidev/knex-orm?
 
 This ORM provides:
 
@@ -19,7 +19,7 @@ This ORM provides:
 Define your schema once, and get full TypeScript support throughout your application:
 
 ```typescript
-import { defineCollection, createInstance } from '@yassi/knex-orm'
+import { defineCollection, createInstance } from '@yassidev/knex-orm'
 
 const schema = {
   users: defineCollection({

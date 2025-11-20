@@ -9,7 +9,7 @@ The ORM instance is created using `createInstance` or `createInstanceWithKnex` a
 Creates a new ORM instance with a Knex configuration:
 
 ```typescript
-import { createInstance, defineCollection } from '@yassi/knex-orm'
+import { createInstance, defineCollection } from '@yassidev/knex-orm'
 
 const schema = {
   users: defineCollection({
@@ -35,7 +35,7 @@ const orm = createInstance(schema, {
 Creates an ORM instance with an existing Knex instance:
 
 ```typescript
-import { createInstanceWithKnex, defineCollection } from '@yassi/knex-orm'
+import { createInstanceWithKnex, defineCollection } from '@yassidev/knex-orm'
 import knex from 'knex'
 
 const knexInstance = knex({
@@ -224,7 +224,7 @@ const invalid = await orm.find('invalid') // ❌ TypeScript error
 ## Complete Example
 
 ```typescript
-import { createInstance, defineCollection } from '@yassi/knex-orm'
+import { createInstance, defineCollection } from '@yassidev/knex-orm'
 
 const schema = {
   users: defineCollection({

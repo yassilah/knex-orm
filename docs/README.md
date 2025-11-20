@@ -1,6 +1,6 @@
 # Documentation
 
-This directory contains the VitePress documentation for `@yassi/knex-orm`.
+This directory contains the VitePress documentation for `@yassidev/knex-orm`.
 
 ## Development
 

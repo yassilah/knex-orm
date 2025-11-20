@@ -1,14 +1,14 @@
 # Quick Start
 
-This guide will walk you through creating a simple blog application with users, posts, and tags to demonstrate the core features of `@yassi/knex-orm`.
+This guide will walk you through creating a simple blog application with users, posts, and tags to demonstrate the core features of `@yassidev/knex-orm`.
 
 ## Step 1: Define Your Schema
 
 First, let's define our database schema:
 
 ```typescript
-import { createInstance, defineCollection } from '@yassi/knex-orm'
-import type { Instance } from '@yassi/knex-orm'
+import { createInstance, defineCollection } from '@yassidev/knex-orm'
+import type { Instance } from '@yassidev/knex-orm'
 
 const schema = {
   users: defineCollection({
@@ -211,7 +211,7 @@ const posts = await orm.find('posts', {
 Here's a complete working example:
 
 ```typescript
-import { createInstance, defineCollection } from '@yassi/knex-orm'
+import { createInstance, defineCollection } from '@yassidev/knex-orm'
 
 const schema = {
   users: defineCollection({

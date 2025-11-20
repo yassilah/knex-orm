@@ -1,6 +1,6 @@
 # Migrations
 
-`@yassi/knex-orm` provides automatic schema migrations that compare your schema definition with the actual database and apply the necessary changes.
+`@yassidev/knex-orm` provides automatic schema migrations that compare your schema definition with the actual database and apply the necessary changes.
 
 ## Overview
 
@@ -181,7 +181,7 @@ await orm.knex.schema.alterTable('users', (table) => {
 ## Example: Complete Migration Flow
 
 ```typescript
-import { createInstance, defineCollection } from '@yassi/knex-orm'
+import { createInstance, defineCollection } from '@yassidev/knex-orm'
 
 const schema = {
   users: defineCollection({

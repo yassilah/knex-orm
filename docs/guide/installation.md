@@ -9,11 +9,11 @@
 ## Install the Package
 
 ```bash
-npm install @yassi/knex-orm
+npm install @yassidev/knex-orm
 # or
-pnpm add @yassi/knex-orm
+pnpm add @yassidev/knex-orm
 # or
-yarn add @yassi/knex-orm
+yarn add @yassidev/knex-orm
 ```
 
 ## Install Database Drivers
@@ -63,7 +63,7 @@ Make sure your `tsconfig.json` includes:
 Create a simple test file to verify everything is working:
 
 ```typescript
-import { createInstance, defineCollection } from '@yassi/knex-orm'
+import { createInstance, defineCollection } from '@yassidev/knex-orm'
 
 const schema = {
   test: defineCollection({

@@ -1,5 +1,5 @@
 {
-   "name": "@yassi/knex-orm",
+   "name": "@yassidev/knex-orm",
    "type": "module",
    "version": "0.1.0",
    "description": "TypeScript ORM on top of Knex with schema definition and migrations",

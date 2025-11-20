@@ -1,13 +1,13 @@
 # Basic Usage Examples
 
-This page contains practical examples of common use cases with `@yassi/knex-orm`.
+This page contains practical examples of common use cases with `@yassidev/knex-orm`.
 
 ## Complete Blog Example
 
 A complete blog application with users, posts, and tags:
 
 ```typescript
-import { createInstance, defineCollection } from '@yassi/knex-orm'
+import { createInstance, defineCollection } from '@yassidev/knex-orm'
 
 // Define schema
 const schema = {

@@ -1,6 +1,6 @@
 # Nested Mutations
 
-Nested mutations allow you to create or update related records in a single operation. This is one of the most powerful features of `@yassi/knex-orm`.
+Nested mutations allow you to create or update related records in a single operation. This is one of the most powerful features of `@yassidev/knex-orm`.
 
 ## Overview
 

@@ -2,7 +2,7 @@
 layout: home
 
 hero:
-  name: "@yassi/knex-orm"
+  name: "@yassidev/knex-orm"
   text: "TypeScript ORM"
   tagline: Built on Knex with schema definition, migrations, and powerful querying
   actions:

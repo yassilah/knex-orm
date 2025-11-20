@@ -1,13 +1,13 @@
 # Schema Definition
 
-The schema is the foundation of `@yassi/knex-orm`. It defines your database structure, including tables, columns, data types, and relationships.
+The schema is the foundation of `@yassidev/knex-orm`. It defines your database structure, including tables, columns, data types, and relationships.
 
 ## Basic Schema Structure
 
 A schema is an object where each key is a table name and each value is a collection definition:
 
 ```typescript
-import { defineCollection, createInstance } from '@yassi/knex-orm'
+import { defineCollection, createInstance } from '@yassidev/knex-orm'
 
 const schema = {
   users: defineCollection({
@@ -186,7 +186,7 @@ const schema = {
 Here's a complete schema example:
 
 ```typescript
-import { defineCollection } from '@yassi/knex-orm'
+import { defineCollection } from '@yassidev/knex-orm'
 
 export const schema = {
   users: defineCollection({

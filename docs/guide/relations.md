@@ -1,6 +1,6 @@
 # Relations
 
-Relations define how tables are connected to each other. `@yassi/knex-orm` supports four types of relations: `belongs-to`, `has-one`, `has-many`, and `many-to-many`.
+Relations define how tables are connected to each other. `@yassidev/knex-orm` supports four types of relations: `belongs-to`, `has-one`, `has-many`, and `many-to-many`.
 
 ## Relation Types
 
@@ -138,7 +138,7 @@ const schema = {
 Here's a complete example with all relation types:
 
 ```typescript
-import { defineCollection } from '@yassi/knex-orm'
+import { defineCollection } from '@yassidev/knex-orm'
 
 const schema = {
   users: defineCollection({

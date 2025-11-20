@@ -1,7 +1,7 @@
 import { defineConfig } from 'vitepress'
 
 export default defineConfig({
-  title: '@yassi/knex-orm',
+  title: '@yassidev/knex-orm',
   description: 'TypeScript ORM on top of Knex with schema definition and migrations',
   base: '/',
   themeConfig: {

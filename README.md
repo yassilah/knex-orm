@@ -1,4 +1,4 @@
-# @yassi/knex-orm
+# @yassidev/knex-orm
 
 Custom TypeScript ORM built on Knex that supports Postgres, MySQL, and SQLite with collection definitions, filtering, pagination, nested relational mutations, and schema migrations.
 
@@ -25,7 +25,7 @@ Use `pnpm lint` for type checking and `pnpm test` (placeholder) for future tests
 ## Defining Collections
 
 ```ts
-import { defineCollection } from '@yassi/knex-orm';
+import { defineCollection } from '@yassidev/knex-orm';
 
 export const users = defineCollection({
   name: 'users',
@@ -80,7 +80,7 @@ Run `pnpm exec knex-orm-migrate <config-file>` where the config exports the same
 
 ```ts
 // orm.config.mjs
-import { createOrm, defineCollection } from '@yassi/knex-orm';
+import { createOrm, defineCollection } from '@yassidev/knex-orm';
 
 export default {
   driver: {
