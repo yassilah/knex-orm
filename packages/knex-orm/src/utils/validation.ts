@@ -2,8 +2,8 @@ import type { ColumnSelection, FindQueryParams } from '../types/query'
 import type { ColumnDefinition, Schema, TableNames, TableRecordInput } from '../types/schema'
 import type { Operator } from './operators'
 import z from 'zod'
-import { getDataTypeOperators, getDataTypeValidator } from '../data-types'
 import { getCollection, getColumns, getRelations } from './collections'
+import { getDataTypeOperators, getDataTypeValidator } from './data-types'
 
 const filterSchemaCache = new Map<string, z.ZodTypeAny>()
 const payloadSchemaCache = new Map<string, z.ZodTypeAny>()
@@ -40,6 +40,7 @@ const OPERATOR_VALUE_FACTORIES: Partial<Record<Operator, (base: z.ZodTypeAny) =>
  */
 function createColumnValueSchema(tableName: string, columnName: string, definition: ColumnDefinition) {
    let schema = getDataTypeValidator(definition.type)({
+      z,
       columnName,
       tableName,
       definition,

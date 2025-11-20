@@ -1,8 +1,10 @@
-import { describe, expect, it } from 'vitest'
-import { validateCollectionName, validatePayload, validateQueryParams } from '../src'
+import { beforeAll, describe, expect, it } from 'vitest'
+import { installDefaultExtensions, validateCollectionName, validatePayload, validateQueryParams } from '../src'
 import { schema } from './test-helpers'
 
 describe('validation utils', () => {
+   beforeAll(installDefaultExtensions)
+
    describe('validateCollectionName', () => {
       it('accepts valid collection names', () => {
          expect(validateCollectionName(schema, 'users')).toBe('users')

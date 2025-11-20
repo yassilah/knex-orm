@@ -84,6 +84,10 @@ export const schema = {
       role: { type: 'belongs-to', target: 'roles', foreignKey: 'id' },
       policy: { type: 'belongs-to', target: 'policies', foreignKey: 'id' },
    }),
+   collections: defineCollection({
+      id: { type: 'integer', primary: true, increments: true },
+      name: { type: 'varchar', nullable: false, unique: true },
+   }),
    permissions: defineCollection({
       id: { type: 'integer', primary: true, increments: true },
       name: { type: 'varchar', nullable: false, unique: true },
@@ -102,10 +106,6 @@ export const schema = {
          target: 'permissions',
          foreignKey: 'id',
       },
-   }),
-   collections: defineCollection({
-      id: { type: 'integer', primary: true, increments: true },
-      name: { type: 'varchar', nullable: false, unique: true },
    }),
 } as const
 

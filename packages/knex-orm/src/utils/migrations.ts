@@ -1,7 +1,7 @@
 import type { Knex } from 'knex'
 import type { CollectionDefinition, ColumnDefinition, Schema } from '../types/schema'
-import { getDataTypeCreator } from '../data-types'
 import { getColumns } from './collections'
+import { getDataTypeAfterCreate, getDataTypeBeforeCreate, getDataTypeCreator } from './data-types'
 
 export type SchemaOperation = { type: 'createTable', tableName: string, collection: CollectionDefinition }
    | {
@@ -21,10 +21,10 @@ export interface MigrationResult {
    operations: SchemaOperation[]
 }
 
-async function applyColumnDefinition(knex: Knex, builder: Knex.CreateTableBuilder | Knex.AlterTableBuilder, tableName: string, columnName: string, definition: ColumnDefinition) {
+function applyColumnDefinition(knex: Knex, builder: Knex.CreateTableBuilder | Knex.AlterTableBuilder, tableName: string, columnName: string, definition: ColumnDefinition) {
    const columnCreator = getDataTypeCreator(definition.type)
 
-   const column = await columnCreator({
+   const column = columnCreator({
       builder,
       tableName,
       columnName,
@@ -120,31 +120,55 @@ export async function diffSchema(
 }
 
 /**
+ * Create a table.
+ */
+async function createTable(knex: Knex, operation: SchemaOperation & { type: 'createTable' }, schema?: Schema) {
+   if (!schema) {
+      throw new Error(`Schema is required to create table ${operation.tableName} (needed for belongs-to column inference)`)
+   }
+
+   const columns = getColumns(operation.collection, schema)
+
+   for (const [column, definition] of Object.entries(columns)) {
+      const beforeCreate = getDataTypeBeforeCreate(definition.type)
+      if (beforeCreate) {
+         await beforeCreate({ knex, columnName: column, tableName: operation.tableName, definition })
+      }
+   }
+
+   await knex.schema.createTable(operation.tableName, (table) => {
+      for (const [column, definition] of Object.entries(columns)) {
+         applyColumnDefinition(knex, table, operation.tableName, column, definition)
+      }
+   })
+
+   for (const [column, definition] of Object.entries(columns)) {
+      const afterCreate = getDataTypeAfterCreate(definition.type)
+      if (afterCreate) {
+         await afterCreate({ knex, columnName: column, tableName: operation.tableName, definition })
+      }
+   }
+}
+
+/**
+ * Alter a table.
+ */
+async function alterTable(knex: Knex, operation: SchemaOperation & { type: 'addColumn' | 'alterColumn' }) {
+   return knex.schema.alterTable(operation.table, (table) => {
+      applyColumnDefinition(knex, table, operation.table, operation.column, operation.definition)
+   })
+}
+
+/**
  * Apply a single migration operation to the database.
  */
-export async function applyOperation(knex: Knex, operation: SchemaOperation, schema?: Schema): Promise<void> {
+export function applyOperation(knex: Knex, operation: SchemaOperation, schema?: Schema) {
    switch (operation.type) {
       case 'createTable':
-         await knex.schema.createTable(operation.tableName, async (table) => {
-            if (!schema) {
-               throw new Error(`Schema is required to create table ${operation.tableName} (needed for belongs-to column inference)`)
-            }
-
-            const columns = getColumns(operation.collection, schema)
-
-            const promises = Object.entries(columns).map(([column, definition]) =>
-               applyColumnDefinition(knex, table, operation.tableName, column, definition),
-            )
-
-            await Promise.all(promises)
-         })
-         break
+         return createTable(knex, operation, schema)
       case 'addColumn':
       case 'alterColumn':
-         await knex.schema.alterTable(operation.table, (table) => {
-            applyColumnDefinition(knex, table, operation.table, operation.column, operation.definition)
-         })
-         break
+         return alterTable(knex, operation)
       default:
          // @ts-expect-error - operation.type is not typed
          throw new Error(`Unsupported operation: ${operation.type}`)

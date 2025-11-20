@@ -8,6 +8,7 @@ import { clientSupportsReturning } from './misc'
 import { handleBelongsToRelations, handleChildRelationsOnCreate, handleChildRelationsOnUpdate, partitionRecord } from './mutations'
 import { isHasMany, isHasOne, isManyToMany } from './relations'
 import { runInTransaction } from './transactions'
+import { attachRowNormalizer, transformInputValue, transformOutputColumnValue, transformOutputValue } from './values'
 
 type QueryOptionsSlice<S extends Schema, N extends TableNames<S>> = Pick<FindQueryParams<S, N>, 'orderBy' | 'limit' | 'offset'>
 
@@ -102,7 +103,7 @@ function buildJoinsAndSelects<S extends Schema>(
    prefix: string,
    selects: string[],
 ): void {
-   const collection = getCollection(schema, baseTable as TableNames<S>)
+   const collection = getCollection(schema, baseTable)
    const relations = getRelations(collection)
 
    for (const [relationName, tree] of Object.entries(relationTree)) {
@@ -147,14 +148,16 @@ function buildJoinsAndSelects<S extends Schema>(
 
 function reconstructNestedObjects<S extends Schema>(
    schema: S,
-   baseTable: string,
+   baseTable: TableNames<S>,
    flatRows: Record<string, unknown>[],
    relationTree: Record<string, RelationTree>,
    baseAlias: string,
+   clientName: string,
 ): Record<string, unknown>[] {
    if (!flatRows.length) return []
 
-   const collection = getCollection(schema, baseTable as TableNames<S>)
+   const collection = getCollection(schema, baseTable)
+   const columns = getColumns(collection, schema)
    const relations = getRelations(collection)
    const basePk = getPrimaryKey(collection)
    const basePkAlias = `${baseAlias}_${basePk}`
@@ -181,7 +184,9 @@ function reconstructNestedObjects<S extends Schema>(
       for (const key of Object.keys(baseRow)) {
          if (key.startsWith(`${baseAlias}_`) && !key.includes('_junction')) {
             const field = key.replace(`${baseAlias}_`, '')
-            result[field] = baseRow[key]
+            const definition = columns[field]
+            if (!definition) continue
+            result[field] = transformOutputColumnValue(clientName, definition.type, baseRow[key])
          }
       }
 
@@ -196,6 +201,7 @@ function reconstructNestedObjects<S extends Schema>(
 
          const targetPk = getPrimaryKey(targetCollection)
          const targetPkAlias = `${targetAlias}_${targetPk}`
+         const targetColumns = getColumns(targetCollection, schema)
 
          if (isHasOne(relation)) {
             // Find first row with non-null relation data
@@ -205,12 +211,14 @@ function reconstructNestedObjects<S extends Schema>(
                for (const field of tree.fields) {
                   const alias = `${targetAlias}_${field}`
                   if (relationRow[alias] !== undefined) {
-                     relationObj[field] = relationRow[alias]
+                     const definition = targetColumns[field]
+                     if (!definition) continue
+                     relationObj[field] = transformOutputColumnValue(clientName, definition.type, relationRow[alias])
                   }
                }
                // Reconstruct nested relations
                if (Object.keys(tree.nested).length > 0) {
-                  const nested = reconstructNestedObjects(schema, relation.target, [relationRow], tree.nested, targetAlias)
+                  const nested = reconstructNestedObjects(schema, relation.target, [relationRow], tree.nested, targetAlias, clientName)
                   if (nested.length > 0) {
                      Object.assign(relationObj, nested[0])
                   }
@@ -230,14 +238,16 @@ function reconstructNestedObjects<S extends Schema>(
                      for (const field of tree.fields) {
                         const alias = `${targetAlias}_${field}`
                         if (row[alias] !== undefined) {
-                           relationObj[field] = row[alias]
+                           const definition = targetColumns[field]
+                           if (!definition) continue
+                           relationObj[field] = transformOutputColumnValue(clientName, definition.type, row[alias])
                         }
                      }
                      relationObjects.set(relationPk, relationObj)
                   }
                   // Reconstruct nested relations
                   if (Object.keys(tree.nested).length > 0) {
-                     const nested = reconstructNestedObjects(schema, relation.target, [row], tree.nested, targetAlias)
+                     const nested = reconstructNestedObjects(schema, relation.target, [row], tree.nested, targetAlias, clientName)
                      if (nested.length > 0) {
                         Object.assign(relationObjects.get(relationPk)!, nested[0])
                      }
@@ -316,8 +326,10 @@ export function find<
       qb.select('*')
    }
 
-   applyFilters<S, N>(qb, knex, schema, tableName, where)
-   applyQueryOptions<S, N, Selection>(qb, { orderBy: orderBy as any, limit, offset })
+   attachRowNormalizer(qb, schema, tableName)
+
+   applyFilters(qb, knex, schema, tableName, where)
+   applyQueryOptions(qb, { orderBy, limit, offset })
 
    return qb
 }
@@ -383,7 +395,7 @@ async function findWithRelations<
 
    // Reconstruct nested objects
    if (Object.keys(relationTree).length > 0) {
-      return reconstructNestedObjects(schema, tableName, flatRows, relationTree, baseAlias) as ColumnSelectionResult<TableRecord<S, N>, Columns>[]
+      return reconstructNestedObjects(schema, tableName, flatRows, relationTree, baseAlias, knex.client.config.client) as ColumnSelectionResult<TableRecord<S, N>, Columns>[]
    }
 
    // No relations, just return base records
@@ -467,7 +479,11 @@ export async function create<S extends Schema, N extends TableNames<S>>(
             { trx },
          )
 
+         transformInputValue(knex.client.config.client?.toString(), schema, tableName, scalar)
+
          const inserted = await insertRecord(knex, tableName, collection, scalar, trx)
+
+         transformOutputValue(schema, tableName, inserted, knex.client.config.client)
 
          await handleChildRelationsOnCreate(
             knex,
@@ -536,6 +552,8 @@ export function update<S extends Schema, N extends TableNames<S>>(
          { trx },
       )
 
+      transformInputValue(knex.client.config.client?.toString(), schema, tableName, scalar)
+
       if (Object.keys(scalar).length) {
          const qb = builder(knex, tableName, trx).modify(qb => applyFilters(qb, knex, schema, tableName, filter))
 
@@ -552,6 +570,8 @@ export function update<S extends Schema, N extends TableNames<S>>(
          : ((await builder(knex, tableName, trx)
                .whereIn(primaryKey, ids)
                .select('*')) as Record<string, unknown>[])
+
+      refreshed.forEach(row => transformOutputValue(schema, tableName, row, knex.client.config.client))
 
       for (const record of refreshed) {
          await handleChildRelationsOnUpdate(

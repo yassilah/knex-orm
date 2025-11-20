@@ -1,3 +1,4 @@
+export * from './extensions'
 export * from './instance'
 export { defineCollection } from './utils/collections'
 export * from './utils/filters'

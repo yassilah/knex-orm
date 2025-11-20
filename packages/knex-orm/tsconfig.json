@@ -6,7 +6,7 @@
       "rootDir": ".",
       "module": "ES2020",
       "paths": {
-         "@": ["."]
+         "@/*": ["./src/*"]
       },
       "outDir": "dist"
    },

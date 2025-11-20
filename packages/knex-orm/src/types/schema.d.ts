@@ -1,4 +1,4 @@
-import type { DataType, DataTypes } from '../data-types'
+import type { DataType, DataTypes } from '../utils/data-types'
 import type { DeepPartial, Prettify } from './helpers'
 
 export interface BaseFieldDefinition {

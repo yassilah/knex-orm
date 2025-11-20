@@ -252,6 +252,7 @@ testAllDrivers('comprehensive instance methods tests (%s)', (driver) => {
                         name: 'manage-users',
                         permissions: [{
                            name: 'read-users',
+                           action: ['read', 'write'],
                         }],
                      }],
                   },
@@ -260,7 +261,7 @@ testAllDrivers('comprehensive instance methods tests (%s)', (driver) => {
          ])
 
          const results = await orm.find('users', {
-            columns: ['id', 'email', 'profile.display_name', 'posts.title', 'roles.name', 'roles.policies.name', 'roles.policies.permissions.name'],
+            columns: ['id', 'email', 'profile.display_name', 'posts.title', 'roles.name', 'roles.policies.name', 'roles.policies.permissions.name', 'roles.policies.permissions.action'],
          })
 
          expect(results).toHaveLength(1)
@@ -275,7 +276,7 @@ testAllDrivers('comprehensive instance methods tests (%s)', (driver) => {
             ],
             roles: [
                { name: 'admin' },
-               { name: 'editor', policies: [{ name: 'manage-users', permissions: [{ name: 'read-users' }] }] },
+               { name: 'editor', policies: [{ name: 'manage-users', permissions: [{ name: 'read-users', action: ['read', 'write'] }] }] },
             ],
          })
       })
