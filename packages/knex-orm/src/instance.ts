@@ -10,11 +10,9 @@ import * as queries from './utils/queries'
 /**
  * Create a new instance of the ORM.
  */
-export function createInstance<S extends Schema>(schema: S, knexConfig: Knex.Config & {
-   defaultExtensions?: boolean
-}) {
+export function createInstance<S extends Schema>(schema: S, knexConfig: Knex.Config, defaultExtensions = true) {
    const knexInstance = knex(knexConfig)
-   return createInstanceWithKnex(schema, knexInstance, knexConfig.defaultExtensions)
+   return createInstanceWithKnex(schema, knexInstance, defaultExtensions)
 }
 
 /**
