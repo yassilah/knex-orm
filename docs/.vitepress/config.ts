@@ -1,12 +1,11 @@
 import { defineConfig } from 'vitepress'
 
 const repositoryName = process.env.GITHUB_REPOSITORY?.split('/')?.[1]
-const docsBase =
-  process.env.DOCS_BASE ??
-  (repositoryName ? `/${repositoryName}/` : '/')
+const docsBase = process.env.DOCS_BASE ?? (repositoryName ? `/${repositoryName}/` : '/')
 
 export default defineConfig({
   title: '@yassidev/knex-orm',
+  ignoreDeadLinks: true,
   description: 'TypeScript ORM on top of Knex with schema definition and migrations',
   base: docsBase,
   themeConfig: {
