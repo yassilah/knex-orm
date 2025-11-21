@@ -51,7 +51,7 @@ export default function install() {
    })
 }
 
-declare module '@/utils/data-types' {
+declare module '../utils/data-types' {
    interface DataTypesMap {
       'enum-array': true
    }

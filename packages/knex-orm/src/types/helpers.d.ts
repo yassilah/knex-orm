@@ -1,6 +1,10 @@
 export type Prettify<T> = {
-   [K in keyof T]: T[K]
+   -readonly [K in keyof T]: T[K] extends object ? Prettify<T[K]> : T[K]
 } & {}
+
+export type Merge<T, U> = {
+   [K in keyof T | keyof U]: K extends keyof T ? T[K] : K extends keyof U ? U[K] : never
+}
 
 type DeepPartialUnion<T> = T extends any
    ? T extends (infer U)[]

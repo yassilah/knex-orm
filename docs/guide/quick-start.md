@@ -7,45 +7,44 @@ This guide will walk you through creating a simple blog application with users, 
 First, let's define our database schema:
 
 ```typescript
-import { createInstance, defineCollection } from '@yassidev/knex-orm'
+import { createInstance, defineSchema } from '@yassidev/knex-orm'
 import type { Instance } from '@yassidev/knex-orm'
 
-const schema = {
-  users: defineCollection({
+const schema = defineSchema({
+  users: {
     id: { type: 'integer', primary: true, increments: true },
     email: { type: 'varchar', unique: true, nullable: false },
     name: { type: 'varchar', nullable: false },
-    posts: { type: 'has-many', target: 'posts', foreignKey: 'author_id' },
-  }),
+    posts: { type: 'has-many' },
+  },
   
-  posts: defineCollection({
+  posts: {
     id: { type: 'integer', primary: true, increments: true },
     title: { type: 'varchar', nullable: false },
     content: { type: 'text', nullable: true },
-    author_id: { type: 'belongs-to', target: 'users', foreignKey: 'id' },
+    user: { type: 'belongs-to', target: 'users' },
     tags: {
       type: 'many-to-many',
       target: 'tags',
-      foreignKey: 'id',
       through: {
         table: 'post_tags',
         sourceFk: 'post_id',
         targetFk: 'tag_id',
       },
     },
-  }),
+  },
   
-  tags: defineCollection({
+  tags: {
     id: { type: 'integer', primary: true, increments: true },
     name: { type: 'varchar', unique: true, nullable: false },
-  }),
+  },
   
-  post_tags: defineCollection({
+  post_tags: {
     id: { type: 'integer', primary: true, increments: true },
-    post_id: { type: 'belongs-to', target: 'posts', foreignKey: 'id' },
-    tag_id: { type: 'belongs-to', target: 'tags', foreignKey: 'id' },
-  }),
-} as const
+    post: { type: 'belongs-to', target: 'posts' },
+    tag: { type: 'belongs-to', target: 'tags' },
+  },
+})
 
 type Schema = typeof schema
 ```
@@ -131,9 +130,9 @@ const user = await orm.findOne('users', {
   where: { email: { $eq: 'alice@example.com' } },
 })
 
-// Find posts with author information
+// Find posts with user information
 const posts = await orm.find('posts', {
-  columns: ['title', 'author.email', 'author.name'],
+  columns: ['title', 'user.email', 'user.name'],
 })
 
 // Find posts with filters
@@ -161,7 +160,7 @@ await orm.updateOne('users',
 
 // Update multiple posts
 const updatedCount = await orm.update('posts',
-  { author_id: { $eq: 1 } },
+  { user: { $eq: 1 } },
   { content: 'Updated content' }
 )
 ```
@@ -174,9 +173,9 @@ Delete records:
 // Delete a specific post
 await orm.removeOne('posts', { id: { $eq: 1 } })
 
-// Delete all posts by an author
+// Delete all posts by a user
 const deletedCount = await orm.remove('posts', {
-  author_id: { $eq: 1 },
+  user: { $eq: 1 },
 })
 ```
 
@@ -189,7 +188,7 @@ Create records with nested relations:
 const post = await orm.createOne('posts', {
   title: 'New Post',
   content: 'Content here',
-  author_id: 1,
+  user: 1,
   tags: [
     { name: 'javascript' },
     { name: 'typescript' },

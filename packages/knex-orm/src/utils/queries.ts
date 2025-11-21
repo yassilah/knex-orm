@@ -157,7 +157,9 @@ function reconstructNestedObjects<S extends Schema>(
    if (!flatRows.length) return []
 
    const collection = getCollection(schema, baseTable)
-   const columns = getColumns(collection, schema)
+   const columns = getColumns(schema, collection, {
+      includeBelongsTo: true,
+   })
    const relations = getRelations(collection)
    const basePk = getPrimaryKey(collection)
    const basePkAlias = `${baseAlias}_${basePk}`
@@ -201,7 +203,9 @@ function reconstructNestedObjects<S extends Schema>(
 
          const targetPk = getPrimaryKey(targetCollection)
          const targetPkAlias = `${targetAlias}_${targetPk}`
-         const targetColumns = getColumns(targetCollection, schema)
+         const targetColumns = getColumns(schema, targetCollection, {
+            includeBelongsTo: true,
+         })
 
          if (isHasOne(relation)) {
             // Find first row with non-null relation data
@@ -369,7 +373,9 @@ async function findWithRelations<
    }
    else {
       // Select all base columns
-      const allColumns = Object.keys(getColumns(collection))
+      const allColumns = Object.keys(getColumns(schema, collection, {
+         includeBelongsTo: true,
+      }))
       for (const col of allColumns) {
          selects.push(`${baseAlias}.${col} as ${baseAlias}_${col}`)
       }
@@ -601,10 +607,10 @@ export function updateOne<S extends Schema, N extends TableNames<S>>(
 ): Promise<TableRecord<S, N> | undefined> {
    return runInTransaction<TableRecord<S, N> | undefined>(knex, options, async (trx) => {
       await update(knex, schema, tableName, filter, patch, { trx })
-      return findOne<S, N>(knex, schema, tableName, {
+      return findOne(knex, schema, tableName, {
          trx,
          where: filter,
-      })
+      }) as Promise<TableRecord<S, N> | undefined>
    })
 }
 

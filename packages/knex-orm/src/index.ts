@@ -1,6 +1,7 @@
 export * from './extensions'
 export * from './instance'
-export { defineCollection } from './utils/collections'
+export { defineCollection, withDefaults, withId, withTimestamps, withUuid } from './utils/collections'
 export * from './utils/filters'
 export * from './utils/migrations'
+export { defineSchema } from './utils/schema'
 export * from './utils/validation'

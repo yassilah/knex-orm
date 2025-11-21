@@ -30,25 +30,12 @@ testAllDrivers('comprehensive instance methods tests (%s)', (driver) => {
 
          const results = await orm.find('users')
          expect(results).toHaveLength(3)
-         expect(results).toMatchInlineSnapshot(`
-           [
-             {
-               "email": "user1@example.com",
-               "id": 1,
-               "status": "active",
-             },
-             {
-               "email": "user2@example.com",
-               "id": 2,
-               "status": "inactive",
-             },
-             {
-               "email": "user3@example.com",
-               "id": 3,
-               "status": "active",
-             },
-           ]
-         `)
+
+         expect(results).toMatchObject(expect.arrayContaining([
+            { id: 1, email: 'user1@example.com', status: 'active', created_at: expect.anything(), updated_at: expect.anything() },
+            { id: 2, email: 'user2@example.com', status: 'inactive', created_at: expect.anything(), updated_at: expect.anything() },
+            { id: 3, email: 'user3@example.com', status: 'active', created_at: expect.anything(), updated_at: expect.anything() },
+         ]))
       })
 
       it('should filter records by simple equality', async () => {
@@ -515,7 +502,7 @@ testAllDrivers('comprehensive instance methods tests (%s)', (driver) => {
          const roles = await orm.find('roles')
          expect(roles).toHaveLength(2)
 
-         const userRoles = await orm.find('user_roles', {
+         const userRoles = await orm.find('users_roles', {
             where: { user: { $eq: results[0]!.id } },
          })
          expect(userRoles).toHaveLength(2)
@@ -543,7 +530,7 @@ testAllDrivers('comprehensive instance methods tests (%s)', (driver) => {
          const tags = await orm.find('tags')
          expect(tags).toHaveLength(2)
 
-         const postTags = await orm.find('post_tags', {
+         const postTags = await orm.find('posts_tags', {
             where: { post: { $eq: results[0]!.id } },
          })
          expect(postTags).toHaveLength(2)
@@ -579,7 +566,7 @@ testAllDrivers('comprehensive instance methods tests (%s)', (driver) => {
          })
          expect(posts).toHaveLength(1)
 
-         const postTags = await orm.find('post_tags', {
+         const postTags = await orm.find('posts_tags', {
             where: { post: { $eq: posts[0]!.id } },
          })
          expect(postTags).toHaveLength(2)
@@ -662,7 +649,7 @@ testAllDrivers('comprehensive instance methods tests (%s)', (driver) => {
          const roles = await orm.find('roles')
          expect(roles.length).toBeGreaterThanOrEqual(2)
 
-         const userRoles = await orm.find('user_roles', {
+         const userRoles = await orm.find('users_roles', {
             where: { user: { $eq: result.id } },
          })
          expect(userRoles.length).toBeGreaterThanOrEqual(2)
@@ -877,7 +864,7 @@ testAllDrivers('comprehensive instance methods tests (%s)', (driver) => {
          })
          expect(newTag).toBeDefined()
 
-         const postTags = await orm.find('post_tags', {
+         const postTags = await orm.find('posts_tags', {
             where: { post: { $eq: post.id } },
          })
          expect(postTags.length).toBeGreaterThanOrEqual(2)

@@ -102,8 +102,12 @@ export function applyFilters<S extends Schema, N extends TableNames<S>>(
    const $or = '$or' in query ? query.$or : undefined
 
    const collection = getCollection(schema, tableName)
-   const columns = getColumns(collection, schema)
-   const relations = getRelations(collection)
+   const columns = getColumns(schema, collection, {
+      includeBelongsTo: true,
+   })
+   const relations = getRelations(collection, {
+      includeBelongsTo: false,
+   })
 
    const fields = Object.fromEntries(Object.entries(query).filter(([k]) => k !== '$and' && k !== '$or')) as Record<string, FieldFilter | FilterQuery<S, any>>
 

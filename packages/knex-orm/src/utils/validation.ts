@@ -91,7 +91,9 @@ export function getWhereValidation<S extends Schema, N extends TableNames<S>>(sc
 
    const nextStack = [...stack, cacheKey]
    const collection = getCollection(schema, tableName)
-   const columns = getColumns(collection, schema)
+   const columns = getColumns(schema, collection, {
+      includeBelongsTo: true,
+   })
    const relations = getRelations(collection)
 
    const shape: Record<string, z.ZodTypeAny> = {}
@@ -157,7 +159,9 @@ function buildPayloadSchema<S extends Schema, N extends TableNames<S>>(schema: S
 
    const nextStack = [...stack, cacheKey]
    const collection = getCollection(schema, tableName)
-   const columns = getColumns(collection, schema)
+   const columns = getColumns(schema, collection, {
+      includeBelongsTo: true,
+   })
    const relations = getRelations(collection)
 
    const shape: Record<string, z.ZodTypeAny> = {}
@@ -193,7 +197,9 @@ function buildPayloadSchema<S extends Schema, N extends TableNames<S>>(schema: S
  */
 function collectColumnPaths<S extends Schema>(schema: S, tableName: TableNames<S>, prefix = '', stack: string[] = []) {
    const collection = getCollection(schema, tableName)
-   const columns = getColumns(collection, schema)
+   const columns = getColumns(schema, collection, {
+      includeBelongsTo: true,
+   })
    const relations = getRelations(collection)
    const nextStack = [...stack, tableName]
    const paths: string[] = []

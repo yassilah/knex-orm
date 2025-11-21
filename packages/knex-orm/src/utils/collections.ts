@@ -1,4 +1,19 @@
-import type { BelongsToRelationDefinition, CollectionDefinition, ColumnDefinition, FieldDefinition, RelationDefinition, Schema, TableNames } from '../types/schema'
+import type { DataTypes } from './data-types'
+import type { ColumnDefinitionWithReferences } from './migrations'
+import type { NormalizedCollectionDefinition, NormalizedFieldDefinition } from '@/types/collection'
+import type {
+   BelongsToRelationDefinition,
+   CollectionDefinition,
+   ColumnDefinition,
+   FieldDefinition,
+   RelationDefinition,
+   Schema,
+   TableNames,
+} from '@/types/schema'
+import defu from 'defu'
+import { isBelongsTo } from './relations'
+
+const relationTypes = ['has-one', 'has-many', 'belongs-to', 'many-to-many']
 
 /**
  * Type guard to check if a field is a column definition
@@ -11,65 +26,42 @@ export function isColumn(field: FieldDefinition): field is ColumnDefinition {
  * Type guard to check if a field is a relation definition
  */
 export function isRelation(field: FieldDefinition): field is RelationDefinition {
-   const relationTypes = ['has-one', 'has-many', 'belongs-to', 'many-to-many']
-   return 'type' in field && relationTypes.includes(field.type as string)
+   return relationTypes.includes(field.type)
+}
+
+/**
+ * Get belongsTo relation from a collection definition
+ */
+function belongsToColumn(schema: Schema, field: BelongsToRelationDefinition) {
+   return {
+      type: schema[field.target][field.foreignKey].type as DataTypes,
+      nullable: field.nullable ?? true,
+      references: {
+         table: field.target,
+         column: field.foreignKey,
+         onDelete: field.onDelete,
+         onUpdate: field.onUpdate,
+      },
+   } satisfies ColumnDefinitionWithReferences
 }
 
 /**
  * Extract columns from a collection definition
- * belongs-to relations are treated as columns (the relation name IS the column name)
  */
-export function getColumns<S extends Schema>(collection: CollectionDefinition, schema?: S): Record<string, ColumnDefinition> {
-   const columns: Record<string, ColumnDefinition> = {}
+export function getColumns(schema: Schema, collection: CollectionDefinition, options: { includeBelongsTo?: boolean } = {}) {
+   const fields = Object.entries(collection).filter(([_, field]) => options.includeBelongsTo ? isBelongsTo(field) || isColumn(field) : isColumn(field))
 
-   for (const [key, field] of Object.entries(collection)) {
-      if (isColumn(field)) {
-         columns[key] = field
-      }
-      else if (isRelation(field) && field.type === 'belongs-to') {
-         // belongs-to relation IS a column - use the relation name as column name
-         const belongsTo = field as BelongsToRelationDefinition
-
-         if (schema) {
-            const targetTable = schema[belongsTo.target]
-            if (targetTable) {
-               // Get the target table's primary key column definition
-               const targetColumns = getColumns(targetTable, schema)
-               const targetPkColumn = Object.entries(targetColumns).find(([, def]) => def.primary === true)
-
-               if (targetPkColumn) {
-                  const [, pkDef] = targetPkColumn
-                  // Create a foreign key column based on the target's primary key
-                  columns[key] = {
-                     type: pkDef.type,
-                     nullable: pkDef.nullable ?? true,
-                     references: {
-                        table: belongsTo.target,
-                        column: belongsTo.foreignKey,
-                        onDelete: 'CASCADE',
-                     },
-                  }
-               }
-            }
-         }
-      }
-   }
-
-   return columns
+   return Object.fromEntries(fields.map(([key, field]) => [
+      key,
+      isBelongsTo(field) ? belongsToColumn(schema, field) : field as ColumnDefinition,
+   ]))
 }
 
 /**
  * Extract relations from a collection definition
- * Excludes belongs-to relations (since they are columns)
  */
-export function getRelations(collection: CollectionDefinition): Record<string, RelationDefinition> {
-   const relations: Record<string, RelationDefinition> = {}
-   for (const [key, field] of Object.entries(collection)) {
-      if (isRelation(field) && field.type !== 'belongs-to') {
-         relations[key] = field
-      }
-   }
-   return relations
+export function getRelations(collection: CollectionDefinition, options: { includeBelongsTo?: boolean } = {}) {
+   return Object.fromEntries(Object.entries(collection).filter(([_, field]) => options.includeBelongsTo ? isRelation(field) : isRelation(field) && !isBelongsTo(field)).map(([key, field]) => [key, field as RelationDefinition]))
 }
 
 /**
@@ -89,9 +81,7 @@ export function getCollection<S extends Schema, N extends TableNames<S>>(schema:
  * Gets the primary key column name from a collection definition
  */
 export function getPrimaryKey(collection: CollectionDefinition) {
-   const columns = getColumns(collection)
-
-   const primaryKey = Object.entries(columns).find(([, def]) => def.primary === true)
+   const primaryKey = Object.entries(collection).find(([, def]) => isColumn(def) && def.primary === true)
 
    if (!primaryKey) {
       throw new Error(`No primary key column was found`)
@@ -101,8 +91,70 @@ export function getPrimaryKey(collection: CollectionDefinition) {
 }
 
 /**
+ * Normalize a field definition.
+ */
+export function normalizeField<const F extends FieldDefinition>(field: F) {
+   if (isBelongsTo(field)) {
+      return defu(field, {
+         nullable: true,
+         onDelete: 'CASCADE',
+         onUpdate: 'CASCADE',
+      }) as NormalizedFieldDefinition<F>
+   }
+
+   return defu(field, {
+      nullable: true,
+   }) as NormalizedFieldDefinition<F>
+}
+
+/**
+ * Normalize a collection definition.
+ */
+export function normalizeCollection<const C extends CollectionDefinition>(collection: C) {
+   return Object.fromEntries(Object.entries(collection).map(([key, value]) => [key, normalizeField(value)]))
+}
+
+/**
  * Define a collection.
  */
-export function defineCollection<const I extends CollectionDefinition>(input: I) {
-   return input
+export function defineCollection<const C extends CollectionDefinition>(input: C) {
+   return normalizeCollection(input) as NormalizedCollectionDefinition<C>
+}
+
+/**
+ * Add an auto-incremented integer primary key column.
+ */
+export function withId<const C extends CollectionDefinition>(collection: C) {
+   return {
+      ...collection,
+      id: { type: 'integer', primary: true, increments: true, nullable: false },
+   } as const
+}
+
+/**
+ * Add created_at and updated_at timestamp columns.
+ */
+export function withTimestamps<const C extends CollectionDefinition>(collection: C) {
+   return {
+      ...collection,
+      created_at: { type: 'timestamp', nullable: false, default: '{now}' },
+      updated_at: { type: 'timestamp', nullable: false, default: '{now}' },
+   } as const
+}
+
+/**
+ * Add a UUID primary key column.
+ */
+export function withUuid<const C extends CollectionDefinition>(collection: C) {
+   return {
+      ...collection,
+      id: { type: 'uuid', default: '{uuid}', primary: true, nullable: false },
+   } as const
+}
+
+/**
+ * Combine withId and withTimestamps.
+ */
+export function withDefaults<const C extends CollectionDefinition>(collection: C) {
+   return withTimestamps(withId(collection))
 }

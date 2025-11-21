@@ -152,8 +152,7 @@ type BuiltInDataTypesMap = {
    [K in BuiltInDataTypes]: true
 }
 
-export interface DataTypesMap extends BuiltInDataTypesMap {
-}
+export interface DataTypesMap extends BuiltInDataTypesMap {}
 
 type DataTypeGroup<T extends keyof DataTypesMap> = {
    [K in keyof typeof DATA_TYPES]: T extends keyof (typeof DATA_TYPES)[K]['types'] ? K : never

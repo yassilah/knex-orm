@@ -48,7 +48,9 @@ export function transformOutputColumnValue(driver: string, type: ColumnDefinitio
  */
 export function transformInputValue(driver: string, schema: Schema, tableName: string, scalar: Record<string, unknown>) {
    const collection = getCollection(schema, tableName)
-   const columns = getColumns(collection, schema)
+   const columns = getColumns(schema, collection, {
+      includeBelongsTo: true,
+   })
 
    for (const [columnName, value] of Object.entries(scalar)) {
       const definition = columns[columnName]
@@ -66,7 +68,9 @@ export function transformOutputValue(schema: Schema, tableName: string, record?:
    if (!isValidRecord(record) || !driver) return record
 
    const collection = getCollection(schema, tableName)
-   const columns = getColumns(collection, schema)
+   const columns = getColumns(schema, collection, {
+      includeBelongsTo: true,
+   })
 
    for (const [columnName, definition] of Object.entries(columns)) {
       if (!(columnName in record)) continue

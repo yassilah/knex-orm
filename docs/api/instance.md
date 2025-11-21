@@ -9,14 +9,14 @@ The ORM instance is created using `createInstance` or `createInstanceWithKnex` a
 Creates a new ORM instance with a Knex configuration:
 
 ```typescript
-import { createInstance, defineCollection } from '@yassidev/knex-orm'
+import { createInstance, defineSchema } from '@yassidev/knex-orm'
 
-const schema = {
-  users: defineCollection({
+const schema = defineSchema({
+  users: {
     id: { type: 'integer', primary: true, increments: true },
     email: { type: 'varchar', nullable: false },
-  }),
-}
+  },
+})
 
 const orm = createInstance(schema, {
   client: 'postgres',
@@ -35,7 +35,7 @@ const orm = createInstance(schema, {
 Creates an ORM instance with an existing Knex instance:
 
 ```typescript
-import { createInstanceWithKnex, defineCollection } from '@yassidev/knex-orm'
+import { createInstanceWithKnex, defineSchema } from '@yassidev/knex-orm'
 import knex from 'knex'
 
 const knexInstance = knex({

@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      defu:
+        specifier: ^6.1.4
+        version: 6.1.4
       ohash:
         specifier: ^2.0.11
         version: 2.0.11
@@ -35,7 +38,7 @@ importers:
         version: 5.9.3
       vitepress:
         specifier: next
-        version: 2.0.0-alpha.13(@types/node@24.10.1)(change-case@5.4.4)(jiti@2.6.1)(postcss@8.5.6)(tsx@4.20.6)(typescript@5.9.3)(yaml@2.8.1)
+        version: 2.0.0-alpha.14(@types/node@24.10.1)(change-case@5.4.4)(jiti@2.6.1)(postcss@8.5.6)(tsx@4.20.6)(typescript@5.9.3)(yaml@2.8.1)
       vitest:
         specifier: ^4.0.10
         version: 4.0.10(@types/debug@4.1.12)(@types/node@24.10.1)(jiti@2.6.1)(tsx@4.20.6)(yaml@2.8.1)
@@ -51,6 +54,9 @@ importers:
       mysql2:
         specifier: ^3.15.3
         version: 3.15.3
+      pluralize:
+        specifier: ^8.0.0
+        version: 8.0.0
       sqlite3:
         specifier: ^5.1.7
         version: 5.1.7
@@ -58,6 +64,9 @@ importers:
         specifier: ^4.1.12
         version: 4.1.12
     devDependencies:
+      '@types/pluralize':
+        specifier: ^0.0.33
+        version: 0.0.33
       better-sqlite3:
         specifier: ^12.4.1
         version: 12.4.1
@@ -721,6 +730,9 @@ packages:
 
   '@types/node@24.10.1':
     resolution: {integrity: sha512-GNWcUTRBgIRJD5zj+Tq0fKOJ5XZajIiBroOF0yvj2bSU1WvNdYS/dn9UxwsujGW4JX06dnHyjV2y9rRaybH0iQ==}
+
+  '@types/pluralize@0.0.33':
+    resolution: {integrity: sha512-JOqsl+ZoCpP4e8TDke9W79FDcSgPAR0l6pixx2JHkhnRjvShyYiAYw2LVsnA7K08Y6DeOnaU6ujmENO4os/cYg==}
 
   '@types/resolve@1.20.2':
     resolution: {integrity: sha512-60BCwRFOZCQhDncwQdxxeOEEkbc5dIMccYLwbxsS4TUNeVECQ/pBJ0j09mrHOl/JJvpRPGwO9SvE4nR2Nb/a4Q==}
@@ -3292,8 +3304,8 @@ packages:
       yaml:
         optional: true
 
-  vitepress@2.0.0-alpha.13:
-    resolution: {integrity: sha512-bnUfnyL3TRqqYvOxQ68MxbFyI6qkQ8IQnhwIiGLSMF9GXloyfBCV1hnVJE6yA+Rlk+T+y19gzDKjKIMpiCIUvA==}
+  vitepress@2.0.0-alpha.14:
+    resolution: {integrity: sha512-byPDAwYGP10NvH6BVeQcVYMJ96B5LktgCpOUmDA9HdNsRJZUG5pr7pe3B/DDEy9nTzi5JyOdhYPXvhI+s5tGew==}
     hasBin: true
     peerDependencies:
       markdown-it-mathjax3: ^4
@@ -3996,6 +4008,8 @@ snapshots:
   '@types/node@24.10.1':
     dependencies:
       undici-types: 7.16.0
+
+  '@types/pluralize@0.0.33': {}
 
   '@types/resolve@1.20.2': {}
 
@@ -6906,7 +6920,7 @@ snapshots:
       tsx: 4.20.6
       yaml: 2.8.1
 
-  vitepress@2.0.0-alpha.13(@types/node@24.10.1)(change-case@5.4.4)(jiti@2.6.1)(postcss@8.5.6)(tsx@4.20.6)(typescript@5.9.3)(yaml@2.8.1):
+  vitepress@2.0.0-alpha.14(@types/node@24.10.1)(change-case@5.4.4)(jiti@2.6.1)(postcss@8.5.6)(tsx@4.20.6)(typescript@5.9.3)(yaml@2.8.1):
     dependencies:
       '@docsearch/css': 4.3.2
       '@docsearch/js': 4.3.2

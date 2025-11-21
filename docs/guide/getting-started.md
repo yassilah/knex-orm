@@ -19,15 +19,15 @@ This ORM provides:
 Define your schema once, and get full TypeScript support throughout your application:
 
 ```typescript
-import { defineCollection, createInstance } from '@yassidev/knex-orm'
+import { defineSchema, createInstance } from '@yassidev/knex-orm'
 
-const schema = {
-  users: defineCollection({
+const schema = defineSchema({
+  users: {
     id: { type: 'integer', primary: true, increments: true },
     email: { type: 'varchar', unique: true, nullable: false },
     status: { type: 'varchar', nullable: true },
-  }),
-}
+  },
+})
 
 const orm = createInstance(schema, {
   client: 'sqlite3',

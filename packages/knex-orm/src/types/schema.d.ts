@@ -1,21 +1,17 @@
+import type { Knex } from 'knex'
 import type { DataType, DataTypes } from '../utils/data-types'
+import type { NormalizedCollectionDefinition } from './collection'
 import type { DeepPartial, Prettify } from './helpers'
 
 export interface BaseFieldDefinition {
    unique?: boolean
    nullable?: boolean
-   default?: unknown
+   default?: unknown | `{${keyof Knex.FunctionHelper}}`
    precision?: number
    scale?: number
    length?: number
    options?: string[]
    increments?: boolean
-   references?: {
-      table: string
-      column: string
-      onDelete?: RelationAction
-      onUpdate?: RelationAction
-   }
 }
 
 export type RelationAction = 'CASCADE' | 'RESTRICT' | 'NO ACTION' | 'SET NULL' | 'SET DEFAULT'
@@ -35,6 +31,8 @@ export interface BaseRelationDefinition extends BaseFieldDefinition {
    type: RelationKind
    target: string
    foreignKey: string
+   onDelete?: RelationAction
+   onUpdate?: RelationAction
 }
 
 export interface HasOneRelationDefinition extends BaseRelationDefinition {
@@ -166,3 +164,7 @@ export type TablePrimaryKeyValue<
 > = TablePrimaryKeyName<S, N> extends infer PK extends TableColumnNames<S, N>
    ? InferColumnType<TableColumn<S, N, PK>>
    : never
+
+export type NormalizedSchemaDefinition<S extends Schema> = Prettify<{
+   [K in keyof S]: NormalizedCollectionDefinition<S[K]>
+}>

@@ -7,27 +7,31 @@ The schema is the foundation of `@yassidev/knex-orm`. It defines your database s
 A schema is an object where each key is a table name and each value is a collection definition:
 
 ```typescript
-import { defineCollection, createInstance } from '@yassidev/knex-orm'
+import { defineSchema, createInstance } from '@yassidev/knex-orm'
 
-const schema = {
-  users: defineCollection({
+const schema = defineSchema({
+  users: {
     // columns and relations go here
-  }),
-  posts: defineCollection({
+  },
+  posts: {
     // columns and relations go here
-  }),
-} as const
+  },
+})
 
 const orm = createInstance(schema, knexConfig)
 ```
+
+### `defineSchema`
+
+Use `defineSchema` to wrap your collections. It keeps the schema strongly typed while automatically filling in defaults where they can be safely inferred (for example, `belongs-to` relations referencing a target table's primary key). You can always provide explicit values when the defaults aren't what you need. `defineCollection` remains available when you need to reuse a collection outside of `defineSchema`, but it's optional inside the schema helper.
 
 ## Defining Columns
 
 Columns are defined using data types. Each column can have various properties:
 
 ```typescript
-const schema = {
-  users: defineCollection({
+const schema = defineSchema({
+  users: {
     // Primary key with auto-increment
     id: { type: 'integer', primary: true, increments: true },
     
@@ -57,8 +61,8 @@ const schema = {
     
     // JSON field
     metadata: { type: 'json', nullable: true },
-  }),
-}
+  },
+})
 ```
 
 ## Column Properties
@@ -147,49 +151,58 @@ See [Data Types](/guide/data-types) for more details.
 Relations connect tables together. See [Relations](/guide/relations) for detailed information.
 
 ```typescript
-const schema = {
-  users: defineCollection({
+const schema = defineSchema({
+  users: {
     id: { type: 'integer', primary: true, increments: true },
     email: { type: 'varchar', nullable: false },
     
-    // Has-many relation
-    posts: { type: 'has-many', target: 'posts', foreignKey: 'author_id' },
+    // Has-many relation (target inferred from key, foreignKey from table name)
+    posts: { type: 'has-many' },
     
-    // Has-one relation
-    profile: { type: 'has-one', target: 'profiles', foreignKey: 'user_id' },
-  }),
+    // Has-one relation (override target because it differs from key)
+    profile: { type: 'has-one', target: 'profiles' },
+  },
   
-  posts: defineCollection({
+  posts: {
     id: { type: 'integer', primary: true, increments: true },
     title: { type: 'varchar', nullable: false },
     
-    // Belongs-to relation (creates author_id column)
-    author: { type: 'belongs-to', target: 'users', foreignKey: 'id' },
+    // Belongs-to relation (target differs from key, so we specify it)
+    user: { type: 'belongs-to', target: 'users' },
     
-    // Many-to-many relation
+    // Many-to-many relation (target inferred, still need the junction metadata)
     tags: {
       type: 'many-to-many',
-      target: 'tags',
-      foreignKey: 'id',
       through: {
         table: 'post_tags',
         sourceFk: 'post_id',
         targetFk: 'tag_id',
       },
     },
-  }),
-}
+  },
+})
 ```
+> **Tip:** When the relation points to the target table's primary key, `defineSchema` lets you omit `foreignKey` for `belongs-to` and many-to-many relations. Specify it manually if you need to reference a different column.
+
+#### Relation defaults
+
+`defineSchema` automatically normalizes relation definitions:
+
+- `target` defaults to the relation key (e.g. `posts: { type: 'has-many' }` → `target: 'posts'`).
+- `foreignKey` defaults to the singularized table name for `has-one`, `has-many`, and `many-to-many` relations (e.g. inside `users`, it becomes `user`).
+- `belongs-to` relations still default their `foreignKey` to the target table's primary key so references stay accurate.
+
+You can always override the inferred values by providing them explicitly.
 
 ## Complete Example
 
 Here's a complete schema example:
 
 ```typescript
-import { defineCollection } from '@yassidev/knex-orm'
+import { defineSchema } from '@yassidev/knex-orm'
 
-export const schema = {
-  users: defineCollection({
+export const schema = defineSchema({
+  users: {
     id: { type: 'integer', primary: true, increments: true },
     email: { type: 'varchar', unique: true, nullable: false },
     name: { type: 'varchar', nullable: false },
@@ -197,47 +210,46 @@ export const schema = {
     created_at: { type: 'timestamp', default: 'CURRENT_TIMESTAMP', nullable: false },
     
     // Relations
-    posts: { type: 'has-many', target: 'posts', foreignKey: 'author_id' },
-    profile: { type: 'has-one', target: 'profiles', foreignKey: 'user_id' },
-  }),
+    posts: { type: 'has-many' },
+    profile: { type: 'has-one', target: 'profiles' },
+  },
   
-  profiles: defineCollection({
+  profiles: {
     id: { type: 'integer', primary: true, increments: true },
-    user_id: { type: 'belongs-to', target: 'users', foreignKey: 'id' },
+    user: { type: 'belongs-to', target: 'users' },
     bio: { type: 'text', nullable: true },
     avatar_url: { type: 'varchar', nullable: true },
-  }),
+  },
   
-  posts: defineCollection({
+  posts: {
     id: { type: 'integer', primary: true, increments: true },
     title: { type: 'varchar', nullable: false },
     content: { type: 'text', nullable: true },
-    author_id: { type: 'belongs-to', target: 'users', foreignKey: 'id' },
+    user: { type: 'belongs-to', target: 'users' },
     published_at: { type: 'timestamp', nullable: true },
     
     tags: {
       type: 'many-to-many',
       target: 'tags',
-      foreignKey: 'id',
       through: {
         table: 'post_tags',
         sourceFk: 'post_id',
         targetFk: 'tag_id',
       },
     },
-  }),
+  },
   
-  tags: defineCollection({
+  tags: {
     id: { type: 'integer', primary: true, increments: true },
     name: { type: 'varchar', unique: true, nullable: false },
-  }),
+  },
   
-  post_tags: defineCollection({
+  post_tags: {
     id: { type: 'integer', primary: true, increments: true },
-    post_id: { type: 'belongs-to', target: 'posts', foreignKey: 'id' },
-    tag_id: { type: 'belongs-to', target: 'tags', foreignKey: 'id' },
-  }),
-} as const
+    post: { type: 'belongs-to', target: 'posts' },
+    tag: { type: 'belongs-to', target: 'tags' },
+  },
+})
 ```
 
 ## Type Safety
