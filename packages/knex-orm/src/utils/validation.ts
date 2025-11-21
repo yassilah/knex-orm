@@ -1,5 +1,5 @@
-import type { ColumnSelection, FindQueryParams } from '../types/query'
-import type { ColumnDefinition, Schema, TableNames, TableRecordInput } from '../types/schema'
+import type { ColumnSelection, FindQueryParams } from '@/types/query'
+import type { ColumnDefinition, Schema, TableNames, TableRecordInput } from '@/types/schema'
 import type { Operator } from './operators'
 import z from 'zod'
 import { getCollection, getColumns, getRelations } from './collections'
@@ -193,13 +193,11 @@ function buildPayloadSchema<S extends Schema, N extends TableNames<S>>(schema: S
 }
 
 /**
- * Collect column paths.
+ * Collect all column paths recursively, including nested relations.
  */
 function collectColumnPaths<S extends Schema>(schema: S, tableName: TableNames<S>, prefix = '', stack: string[] = []) {
    const collection = getCollection(schema, tableName)
-   const columns = getColumns(schema, collection, {
-      includeBelongsTo: true,
-   })
+   const columns = getColumns(schema, collection, { includeBelongsTo: true })
    const relations = getRelations(collection)
    const nextStack = [...stack, tableName]
    const paths: string[] = []

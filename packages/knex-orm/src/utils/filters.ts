@@ -1,28 +1,29 @@
 import type { Knex } from 'knex'
-import type { FieldFilter, FilterQuery } from '../types/query'
-import type { RelationDefinition, Schema, TableNames } from '../types/schema'
+import type { FieldFilter, FilterQuery } from '@/types/query'
+import type { RelationDefinition, Schema, TableNames } from '@/types/schema'
 import type { Operator } from './operators'
 import { hash } from 'ohash'
 import { getCollection, getColumns, getPrimaryKey, getRelations } from './collections'
 import { OPERATORS } from './operators'
 import { isHasMany, isHasOne, isManyToMany } from './relations'
 
-export type { FieldFilter, FilterQuery } from '../types/query'
+export type { FieldFilter, FilterQuery } from '@/types/query'
 
+/**
+ * Apply a field filter to a query builder.
+ */
 function applyFieldFilter(builder: Knex.QueryBuilder, column: string, value: FieldFilter) {
    if (typeof value !== 'object' || value === null || value instanceof Date) {
       return builder.where(column, value)
    }
 
-   Object.entries(value).forEach(([operator, operand]) => {
+   for (const [operator, operand] of Object.entries(value)) {
       const operatorFn = OPERATORS[operator as Operator]
-
       if (!operatorFn) {
          throw new Error(`Invalid operator: ${operator}`)
       }
-
       operatorFn(builder, column, operand)
-   })
+   }
 }
 
 function applyRelationFilter<S extends Schema, N extends TableNames<S>>(
@@ -88,6 +89,9 @@ function applyRelationFilter<S extends Schema, N extends TableNames<S>>(
    }
 }
 
+/**
+ * Apply filters to a query builder.
+ */
 export function applyFilters<S extends Schema, N extends TableNames<S>>(
    qb: Knex.QueryBuilder,
    knex: Knex,
@@ -102,17 +106,15 @@ export function applyFilters<S extends Schema, N extends TableNames<S>>(
    const $or = '$or' in query ? query.$or : undefined
 
    const collection = getCollection(schema, tableName)
-   const columns = getColumns(schema, collection, {
-      includeBelongsTo: true,
-   })
-   const relations = getRelations(collection, {
-      includeBelongsTo: false,
-   })
+   const columns = getColumns(schema, collection, { includeBelongsTo: true })
+   const relations = getRelations(collection, { includeBelongsTo: false })
 
-   const fields = Object.fromEntries(Object.entries(query).filter(([k]) => k !== '$and' && k !== '$or')) as Record<string, FieldFilter | FilterQuery<S, any>>
+   const fields = Object.fromEntries(
+      Object.entries(query).filter(([k]) => k !== '$and' && k !== '$or'),
+   ) as Record<string, FieldFilter | FilterQuery<S, any>>
 
-   Object.entries(fields).forEach(([key, value]) => {
-      if (value === undefined) return
+   for (const [key, value] of Object.entries(fields)) {
+      if (value === undefined) continue
 
       if (isRelationFilter(relations, key, value)) {
          applyRelationFilter(qb, knex, schema, tableName, key, value, tableAlias)
@@ -124,18 +126,22 @@ export function applyFilters<S extends Schema, N extends TableNames<S>>(
       else {
          throw new Error(`Unknown field "${key}" in filter for table "${tableName}"`)
       }
-   })
+   }
 
-   if (Array.isArray($and) && $and.length) {
+   if (Array.isArray($and) && $and.length > 0) {
       qb.andWhere((builder) => {
-         $and.forEach(nested => applyFilters(builder, knex, schema, tableName, nested, tableAlias))
+         for (const nested of $and) {
+            applyFilters(builder, knex, schema, tableName, nested, tableAlias)
+         }
       })
    }
 
-   if (Array.isArray($or) && $or.length) {
+   if (Array.isArray($or) && $or.length > 0) {
       qb.andWhere((builder) => {
          builder.where((sub) => {
-            $or.forEach(nested => sub.orWhere(inner => applyFilters(inner, knex, schema, tableName, nested, tableAlias)))
+            for (const nested of $or) {
+               sub.orWhere(inner => applyFilters(inner, knex, schema, tableName, nested, tableAlias))
+            }
          })
       })
    }

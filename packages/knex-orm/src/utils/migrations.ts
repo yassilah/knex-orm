@@ -1,5 +1,5 @@
 import type { Knex } from 'knex'
-import type { CollectionDefinition, ColumnDefinition, RelationAction, Schema } from '../types/schema'
+import type { CollectionDefinition, ColumnDefinition, RelationAction, Schema } from '@/types/schema'
 import { getColumns } from './collections'
 import { getDataTypeAfterCreate, getDataTypeBeforeCreate, getDataTypeCreator } from './data-types'
 
@@ -30,10 +30,11 @@ export interface MigrationResult {
    operations: SchemaOperation[]
 }
 
+/**
+ * Apply a column definition to a table builder.
+ */
 function applyColumnDefinition(knex: Knex, builder: Knex.CreateTableBuilder | Knex.AlterTableBuilder, tableName: string, columnName: string, definition: ColumnDefinitionWithReferences) {
-   const columnCreator = getDataTypeCreator(definition.type)
-
-   const column = columnCreator({
+   const column = getDataTypeCreator(definition.type)({
       builder,
       tableName,
       columnName,
@@ -41,20 +42,10 @@ function applyColumnDefinition(knex: Knex, builder: Knex.CreateTableBuilder | Kn
       knex,
    })
 
-   if (definition.primary) {
-      column.primary()
-   }
-
-   if (definition.unique) {
-      column.unique()
-   }
-
-   if (definition.nullable === false) {
-      column.notNullable()
-   }
-   else {
-      column.nullable()
-   }
+   if (definition.primary) column.primary()
+   if (definition.unique) column.unique()
+   if (definition.nullable === false) column.notNullable()
+   else column.nullable()
 
    if (definition.default !== undefined) {
       column.defaultTo(getDefaultValue(knex, definition.default))
@@ -70,6 +61,9 @@ function applyColumnDefinition(knex: Knex, builder: Knex.CreateTableBuilder | Kn
    }
 }
 
+/**
+ * Check if a value is a Knex function helper.
+ */
 function isFunctionHelper(knex: Knex, value: unknown): value is keyof Knex.FunctionHelper {
    return typeof value === 'string' && value in knex.fn
 }
@@ -80,15 +74,16 @@ function isFunctionHelper(knex: Knex, value: unknown): value is keyof Knex.Funct
 function getDefaultValue<T>(knex: Knex, value: T) {
    if (typeof value === 'string') {
       const fnMatch = value.match(/^\{(\w+)\}$/)?.[1]
-
-      if (isFunctionHelper(knex, fnMatch)) {
+      if (fnMatch && isFunctionHelper(knex, fnMatch)) {
          return knex.fn[fnMatch](null as never)
       }
    }
-
    return value
 }
 
+/**
+ * Get column information for a table, returning undefined on error.
+ */
 async function getColumnInfo(knex: Knex, table: string) {
    try {
       return await knex(table).columnInfo()
@@ -122,7 +117,7 @@ export async function diffSchema(
          includeBelongsTo: true,
       })
 
-      Object.entries(columns).forEach(([name, definition]) => {
+      for (const [name, definition] of Object.entries(columns)) {
          if (!columnInfo[name]) {
             operations.push({
                type: 'addColumn',
@@ -130,12 +125,14 @@ export async function diffSchema(
                column: name,
                definition,
             })
-            return
+            continue
          }
 
          const existing = columnInfo[name]
+         const nullableMismatch = (definition.nullable === false && existing.nullable)
+            || (definition.nullable !== false && !existing.nullable)
 
-         if ((definition.nullable === false && existing.nullable) || (definition.nullable !== false && !existing.nullable)) {
+         if (nullableMismatch) {
             operations.push({
                type: 'alterColumn',
                table: tableName,
@@ -143,23 +140,21 @@ export async function diffSchema(
                definition,
             })
          }
-      })
+      }
    }
 
    return operations
 }
 
 /**
- * Create a table.
+ * Create a table with all its columns.
  */
 async function createTable(knex: Knex, operation: SchemaOperation & { type: 'createTable' }, schema?: Schema) {
    if (!schema) {
       throw new Error(`Schema is required to create table ${operation.tableName} (needed for belongs-to column inference)`)
    }
 
-   const columns = getColumns(schema, operation.collection, {
-      includeBelongsTo: true,
-   })
+   const columns = getColumns(schema, operation.collection, { includeBelongsTo: true })
 
    for (const [column, definition] of Object.entries(columns)) {
       const beforeCreate = getDataTypeBeforeCreate(definition.type)
@@ -201,9 +196,10 @@ export function applyOperation(knex: Knex, operation: SchemaOperation, schema?: 
       case 'addColumn':
       case 'alterColumn':
          return alterTable(knex, operation)
-      default:
-         // @ts-expect-error - operation.type is not typed
-         throw new Error(`Unsupported operation: ${operation.type}`)
+      default: {
+         const _exhaustive: never = operation
+         throw new Error(`Unsupported operation: ${(_exhaustive as { type: string }).type}`)
+      }
    }
 }
 

@@ -1,4 +1,4 @@
-import type { NormalizedSchemaDefinition, Schema } from '../types/schema'
+import type { NormalizedSchemaDefinition, Schema } from '@/types/schema'
 import { defineCollection } from './collections'
 
 /**

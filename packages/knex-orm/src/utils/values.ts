@@ -1,5 +1,5 @@
 import type { Knex } from 'knex'
-import type { ColumnDefinition, Schema, TableNames } from '../types/schema'
+import type { ColumnDefinition, Schema, TableNames } from '@/types/schema'
 import { getCollection, getColumns } from './collections'
 
 interface ValueTransformer {
@@ -44,37 +44,35 @@ export function transformOutputColumnValue(driver: string, type: ColumnDefinitio
 }
 
 /**
- * Prepare a scalar for write.
+ * Transform input values for database insertion/update.
  */
 export function transformInputValue(driver: string, schema: Schema, tableName: string, scalar: Record<string, unknown>) {
    const collection = getCollection(schema, tableName)
-   const columns = getColumns(schema, collection, {
-      includeBelongsTo: true,
-   })
+   const columns = getColumns(schema, collection, { includeBelongsTo: true })
 
    for (const [columnName, value] of Object.entries(scalar)) {
       const definition = columns[columnName]
-      if (!definition) continue
-      scalar[columnName] = transformInputColumnValue(driver, definition.type, value)
+      if (definition) {
+         scalar[columnName] = transformInputColumnValue(driver, definition.type, value)
+      }
    }
 
    return scalar
 }
 
 /**
- * Normalize a record from the database.
+ * Normalize a record from the database by transforming column values.
  */
 export function transformOutputValue(schema: Schema, tableName: string, record?: unknown, driver?: string) {
    if (!isValidRecord(record) || !driver) return record
 
    const collection = getCollection(schema, tableName)
-   const columns = getColumns(schema, collection, {
-      includeBelongsTo: true,
-   })
+   const columns = getColumns(schema, collection, { includeBelongsTo: true })
 
    for (const [columnName, definition] of Object.entries(columns)) {
-      if (!(columnName in record)) continue
-      record[columnName] = transformOutputColumnValue(driver, definition.type, record[columnName])
+      if (columnName in record) {
+         record[columnName] = transformOutputColumnValue(driver, definition.type, record[columnName])
+      }
    }
 
    return record
@@ -96,7 +94,7 @@ export function attachRowNormalizer<S extends Schema, N extends TableNames<S>>(q
 }
 
 /**
- * Check if the record is an object
+ * Check if a value is a valid record object.
  */
 function isValidRecord(record: unknown): record is Record<string, unknown> {
    return record != null && typeof record === 'object'

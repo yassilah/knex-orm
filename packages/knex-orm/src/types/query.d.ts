@@ -1,7 +1,7 @@
 /* eslint-disable ts/no-empty-object-type */
-import type { Operator } from '../utils/operators'
+import type { Operator } from ' @/utils/operators'
 import type { Prettify } from './helpers'
-import type { Schema, TableNames, TableRecord, TableRelationNames, TableRelation } from './schema'
+import type { Schema, TableNames, TableRecord, TableRelation, TableRelationNames } from './schema'
 
 export type Primitive = string | number | boolean | Date | null | undefined
 
@@ -11,20 +11,20 @@ export type FieldFilter = | Primitive
    }
 
 // Get the target table name for a relation
-type RelationTargetTable<S extends Schema, N extends TableNames<S>, K extends TableRelationNames<S, N>> = 
-   TableRelation<S, N, K>['target'] extends TableNames<S> 
+type RelationTargetTable<S extends Schema, N extends TableNames<S>, K extends TableRelationNames<S, N>>
+   = TableRelation<S, N, K>['target'] extends TableNames<S>
       ? TableRelation<S, N, K>['target']
       : never
 
 export type FilterQuery<S extends Schema, N extends TableNames<S>> = TableRecord<S, N> extends infer TRecord ? {
-   [K in keyof TRecord]?: 
-      K extends TableRelationNames<S, N>
-         ? K extends string
-            ? RelationTargetTable<S, N, K> extends infer TargetTable extends TableNames<S>
-               ? FilterQuery<S, TargetTable>
-               : FieldFilter
+   [K in keyof TRecord]?:
+   K extends TableRelationNames<S, N>
+      ? K extends string
+         ? RelationTargetTable<S, N, K> extends infer TargetTable extends TableNames<S>
+            ? FilterQuery<S, TargetTable>
             : FieldFilter
-         : FieldFilter;
+         : FieldFilter
+      : FieldFilter;
 } & {
    $and?: FilterQuery<S, N>[]
    $or?: FilterQuery<S, N>[]

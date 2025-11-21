@@ -24,7 +24,7 @@ You'll also need to install the appropriate database driver for your database:
 
 ```bash
 npm install pg
-npm install --save-dev @types/pg
+npm install --save-dev @/types/pg
 ```
 
 ### MySQL

@@ -46,10 +46,12 @@ function belongsToColumn(schema: Schema, field: BelongsToRelationDefinition) {
 }
 
 /**
- * Extract columns from a collection definition
+ * Extract columns from a collection definition.
  */
 export function getColumns(schema: Schema, collection: CollectionDefinition, options: { includeBelongsTo?: boolean } = {}) {
-   const fields = Object.entries(collection).filter(([_, field]) => options.includeBelongsTo ? isBelongsTo(field) || isColumn(field) : isColumn(field))
+   const fields = Object.entries(collection).filter(([_, field]) =>
+      options.includeBelongsTo ? isBelongsTo(field) || isColumn(field) : isColumn(field),
+   )
 
    return Object.fromEntries(fields.map(([key, field]) => [
       key,
@@ -58,10 +60,13 @@ export function getColumns(schema: Schema, collection: CollectionDefinition, opt
 }
 
 /**
- * Extract relations from a collection definition
+ * Extract relations from a collection definition.
  */
 export function getRelations(collection: CollectionDefinition, options: { includeBelongsTo?: boolean } = {}) {
-   return Object.fromEntries(Object.entries(collection).filter(([_, field]) => options.includeBelongsTo ? isRelation(field) : isRelation(field) && !isBelongsTo(field)).map(([key, field]) => [key, field as RelationDefinition]))
+   const fields = Object.entries(collection).filter(([_, field]) =>
+      options.includeBelongsTo ? isRelation(field) : isRelation(field) && !isBelongsTo(field),
+   )
+   return Object.fromEntries(fields.map(([key, field]) => [key, field as RelationDefinition]))
 }
 
 /**
@@ -78,15 +83,13 @@ export function getCollection<S extends Schema, N extends TableNames<S>>(schema:
 }
 
 /**
- * Gets the primary key column name from a collection definition
+ * Get the primary key column name from a collection definition.
  */
 export function getPrimaryKey(collection: CollectionDefinition) {
    const primaryKey = Object.entries(collection).find(([, def]) => isColumn(def) && def.primary === true)
-
    if (!primaryKey) {
-      throw new Error(`No primary key column was found`)
+      throw new Error('No primary key column was found')
    }
-
    return primaryKey[0]
 }
 

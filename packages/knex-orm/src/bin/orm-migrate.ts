@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import type { Knex } from 'knex'
-import type { CollectionDefinition } from '../types/schema'
+import type { CollectionDefinition } from '@/types/schema'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { createInstance } from '..'

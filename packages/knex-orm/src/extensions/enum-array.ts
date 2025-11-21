@@ -1,5 +1,5 @@
-import { defineDataType } from '../utils/data-types'
-import { defineValueTransformer } from '../utils/values'
+import { defineDataType } from '@/utils/data-types'
+import { defineValueTransformer } from '@/utils/values'
 
 /**
  * Install the enum-array data type.
@@ -51,7 +51,7 @@ export default function install() {
    })
 }
 
-declare module '../utils/data-types' {
+declare module '@/utils/data-types' {
    interface DataTypesMap {
       'enum-array': true
    }

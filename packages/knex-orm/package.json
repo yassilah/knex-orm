@@ -47,7 +47,7 @@
       "zod": "^4.1.12"
    },
    "devDependencies": {
-      "@types/pluralize": "^0.0.33",
+      "@/types/pluralize": "^0.0.33",
       "better-sqlite3": "^12.4.1",
       "mysql": "^2.18.1",
       "pg": "^8.16.3",

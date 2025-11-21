@@ -1,7 +1,7 @@
 import type { Knex } from 'knex'
-import type { DataType, DataTypes } from '../utils/data-types'
 import type { NormalizedCollectionDefinition } from './collection'
 import type { DeepPartial, Prettify } from './helpers'
+import type { DataType, DataTypes } from '@/utils/data-types'
 
 export interface BaseFieldDefinition {
    unique?: boolean

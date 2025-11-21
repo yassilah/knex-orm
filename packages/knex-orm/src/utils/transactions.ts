@@ -1,5 +1,5 @@
 import type { Knex } from 'knex'
-import type { MutationOptions } from '../types/orm'
+import type { MutationOptions } from '@/types/orm'
 
 /**
  * Run a transaction and return the result.
