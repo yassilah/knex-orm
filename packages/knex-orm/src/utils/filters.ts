@@ -6,7 +6,7 @@ import type { Schema, TableNames } from '@/types/schema'
 import { hash } from 'ohash'
 import { getCollection, getColumns, getPrimaryKey, getRelations } from './collections'
 import { OPERATORS } from './operators'
-import { isHasMany, isHasOne, isManyToMany } from './relations'
+import { isBelongsTo, isHasMany, isHasOne, isManyToMany } from './relations'
 
 export type { FieldFilter, FilterQuery } from '@/types/query'
 
@@ -14,8 +14,13 @@ export type { FieldFilter, FilterQuery } from '@/types/query'
  * Apply a field filter to a query builder.
  */
 function applyFieldFilter(builder: Knex.QueryBuilder, column: string, value: FieldFilter) {
-   if (typeof value !== 'object' || value === null || value instanceof Date) {
-      return builder.where(column, value)
+   if (typeof value !== 'object' || value === null || value instanceof Date || Array.isArray(value)) {
+      if (Array.isArray(value)) {
+         return builder.whereIn(column, value)
+      }
+      else {
+         return builder.where(column, value)
+      }
    }
 
    for (const [operator, operand] of Object.entries(value)) {
@@ -27,17 +32,34 @@ function applyFieldFilter(builder: Knex.QueryBuilder, column: string, value: Fie
    }
 }
 
+/**
+ * Check if a value is a simple FieldFilter (only operators) vs a FilterQuery (has field names).
+ */
+function isSimpleFieldFilter(value: unknown): boolean {
+   if (typeof value !== 'object' || value === null || value instanceof Date || Array.isArray(value)) {
+      return true
+   }
+
+   const keys = Object.keys(value)
+
+   if (keys.includes('$and') || keys.includes('$or')) {
+      return false
+   }
+
+   return keys.every(key => key in OPERATORS)
+}
+
 function applyRelationFilter<S extends Schema, N extends TableNames<S>>(
    qb: Knex.QueryBuilder,
    knex: Knex,
    schema: S,
    baseTable: N,
    relationName: string,
-   nestedFilter: FilterQuery<S, any>,
+   nestedFilter: FilterQuery<S, any> | FieldFilter,
    baseTableAlias?: string,
 ): void {
    const collection = getCollection(schema, baseTable)
-   const relations = getRelations(collection)
+   const relations = getRelations(collection, { includeBelongsTo: true })
    const relation = relations[relationName]
 
    if (!relation) {
@@ -55,13 +77,28 @@ function applyRelationFilter<S extends Schema, N extends TableNames<S>>(
    const relationAlias = hash({ filter: relationName })
    const baseRef = baseTableAlias || baseTable
 
+   // For belongs-to relations with a simple FieldFilter, filter by the foreign key column directly
+   if (isBelongsTo(relation) && isSimpleFieldFilter(nestedFilter)) {
+      const columnName = baseTableAlias ? `${baseTableAlias}.${relationName}` : relationName
+      applyFieldFilter(qb, columnName, nestedFilter as FieldFilter)
+      return
+   }
+
+   // For other cases, join the related table and apply filters
    if (isHasOne(relation) || isHasMany(relation)) {
       qb.innerJoin(
          `${tableTable} as ${relationAlias}`,
          `${relationAlias}.${relation.foreignKey}`,
          `${baseRef}.${basePk}`,
       )
-      applyFilters(qb, knex, schema, tableTable, nestedFilter, relationAlias)
+      // For has-one/has-many, if it's a simple FieldFilter, treat it as filtering by the primary key
+      if (isSimpleFieldFilter(nestedFilter)) {
+         const columnName = `${relationAlias}.${tablePk}`
+         applyFieldFilter(qb, columnName, nestedFilter as FieldFilter)
+      }
+      else {
+         applyFilters(qb, knex, schema, tableTable, nestedFilter as FilterQuery<S, any>, relationAlias)
+      }
    }
    else if (isManyToMany(relation)) {
       const { through } = relation
@@ -83,10 +120,23 @@ function applyRelationFilter<S extends Schema, N extends TableNames<S>>(
             `${junctionAlias}.${through.tableFk}`,
          )
 
-      applyFilters(qb, knex, schema, tableTable, nestedFilter, relationAlias)
+      // For many-to-many, if it's a simple FieldFilter, treat it as filtering by the primary key
+      if (isSimpleFieldFilter(nestedFilter)) {
+         const columnName = `${relationAlias}.${tablePk}`
+         applyFieldFilter(qb, columnName, nestedFilter as FieldFilter)
+      }
+      else {
+         applyFilters(qb, knex, schema, tableTable, nestedFilter as FilterQuery<S, any>, relationAlias)
+      }
    }
    else {
-      throw new Error(`Unsupported relation type for filtering: ${relation.type}`)
+      // belongs-to with FilterQuery - join and filter
+      qb.innerJoin(
+         `${tableTable} as ${relationAlias}`,
+         `${relationAlias}.${relation.foreignKey}`,
+         `${baseRef}.${basePk}`,
+      )
+      applyFilters(qb, knex, schema, tableTable, nestedFilter as FilterQuery<S, any>, relationAlias)
    }
 }
 
@@ -108,7 +158,7 @@ export function applyFilters<S extends Schema, N extends TableNames<S>>(
 
    const collection = getCollection(schema, tableName)
    const columns = getColumns(schema, collection, { includeBelongsTo: true })
-   const relations = getRelations(collection, { includeBelongsTo: false })
+   const relations = getRelations(collection, { includeBelongsTo: true })
 
    const fields = Object.fromEntries(
       Object.entries(query).filter(([k]) => k !== '$and' && k !== '$or'),
@@ -151,8 +201,25 @@ export function applyFilters<S extends Schema, N extends TableNames<S>>(
 }
 
 /**
- * Check if a value is a relation filter.
+ * Check if a value is a relation filter (either FieldFilter or FilterQuery for a relation).
+ * Also handles direct values (e.g., `author: 123` instead of `author: { $eq: 123 }`).
  */
-function isRelationFilter<S extends Schema, N extends TableNames<S>>(relations: Record<string, RelationDefinition>, key: string, value: unknown): value is FilterQuery<S, N> {
-   return relations[key] && !Object.keys(OPERATORS).includes(String(value))
+function isRelationFilter<S extends Schema, N extends TableNames<S>>(relations: Record<string, RelationDefinition>, key: string, value: unknown): value is FilterQuery<S, N> | FieldFilter {
+   if (!relations[key]) {
+      return false
+   }
+
+   // If it's a direct value (not an object), it's a relation filter that will be normalized to { $eq: value }
+   if (typeof value !== 'object' || value === null || value instanceof Date || Array.isArray(value)) {
+      return true
+   }
+
+   // If it's a belongs-to relation, it can be either a FieldFilter or FilterQuery
+   if (isBelongsTo(relations[key])) {
+      return true
+   }
+
+   // For other relations, it should be a FilterQuery (object with field names or operators)
+   // But not a plain operator name string
+   return !Object.keys(OPERATORS).includes(String(value))
 }

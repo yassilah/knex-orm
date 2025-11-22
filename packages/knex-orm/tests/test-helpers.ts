@@ -22,6 +22,7 @@ export const schema = defineSchema({
    }),
    tags: withDefaults({
       name: { type: 'varchar', nullable: false, unique: true },
+      posts: { type: 'many-to-many', table: 'posts', foreignKey: 'id', through: { table: 'posts_tags', sourceFk: 'tag', tableFk: 'post' } },
    }),
    posts_tags: withDefaults({
       post: { type: 'belongs-to', table: 'posts', foreignKey: 'id' },

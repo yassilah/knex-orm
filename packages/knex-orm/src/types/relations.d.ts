@@ -68,8 +68,7 @@ export type RelatedFieldName<S extends Schema, T extends TableNames<S>, RootTabl
    = TableRelationNames<S, T> extends infer Names ? {
       [K in Names]: TableRelation<S, T, K> extends infer TR
          ? TR['table'] extends RootTable ? never
-            : ? `${K}.${FieldName<S, TR['table'], true, RootTable, Placeholder>}`
-            | (TR extends { type: 'has-one' | 'belongs-to' } ? K : never)
+            : `${K}.${FieldName<S, TR['table'], true, T, Placeholder>}` | (TR extends { type: 'has-one' | 'belongs-to' } ? K : never)
          : never
    }[Names] : never
 

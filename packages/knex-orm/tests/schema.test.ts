@@ -331,6 +331,17 @@ describe('schema', () => {
               "type": "varchar",
               "unique": true,
             },
+            "posts": {
+              "foreignKey": "id",
+              "nullable": true,
+              "table": "posts",
+              "through": {
+                "sourceFk": "tag",
+                "table": "posts_tags",
+                "tableFk": "post",
+              },
+              "type": "many-to-many",
+            },
             "updated_at": {
               "default": "{now}",
               "nullable": false,

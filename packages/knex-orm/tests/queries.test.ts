@@ -462,10 +462,86 @@ testAllDrivers('comprehensive instance methods tests (%s)', (driver) => {
          expect(results[0]?.email).toBe('user1@example.com')
 
          const profile = await orm.findOne('profiles', {
-            where: { user: { $eq: results[0]!.id } },
+            where: {
+               user: { $eq: results[0]!.id },
+            },
          })
-         expect(profile).toBeDefined()
+
          expect(profile?.display_name).toBe('Test User')
+      })
+
+      it('should be able to filter a relation by id', async () => {
+         const [result] = await orm.create('users', [
+            {
+               email: 'user1@example.com',
+               status: 'active',
+               profile: { display_name: 'Test User' },
+               posts: [{ title: 'Post 1', slug: 'post-1', tags: [{ name: 'Tag 1' }] }],
+            },
+         ])
+
+         // Filter by direct id
+         const post = await orm.findOne('posts', {
+            where: {
+               author: { $eq: result!.id },
+            },
+         })
+
+         // Filter by id in object
+         const post2 = await orm.findOne('posts', {
+            where: {
+               author: { id: { $eq: result!.id } },
+            },
+         })
+
+         // Filter by id as value
+         const post3 = await orm.findOne('posts', {
+            where: {
+               author: result!.id,
+            },
+         })
+
+         // Filter by id as array value
+         const post4 = await orm.findOne('posts', {
+            where: {
+               author: [result!.id],
+            },
+         })
+
+         expect(post?.title).toBe('Post 1')
+         expect(post2).toMatchObject(post!)
+         expect(post3).toMatchObject(post!)
+         expect(post4).toMatchObject(post!)
+
+         const tags = await orm.find('tags', {
+            where: {
+               posts: { $eq: post!.id },
+            },
+         })
+
+         const tags2 = await orm.find('tags', {
+            where: {
+               posts: { id: { $eq: post2!.id } },
+            },
+         })
+
+         const tags3 = await orm.find('tags', {
+            where: {
+               posts: result!.id,
+            },
+         })
+
+         const tags4 = await orm.find('tags', {
+            where: {
+               posts: [post!.id],
+            },
+         })
+
+         expect(tags).toHaveLength(1)
+         expect(tags[0]?.name).toBe('Tag 1')
+         expect(tags2).toMatchObject(tags!)
+         expect(tags3).toMatchObject(tags!)
+         expect(tags4).toMatchObject(tags!)
       })
 
       it('should create record with has-many relation', async () => {
