@@ -37,7 +37,8 @@
       "dev": "tsx watch src/index.ts",
       "lint": "eslint . --max-warnings=0",
       "typecheck": "tsc --noEmit",
-      "test": "vitest run"
+      "test": "vitest run",
+      "test:watch": "vitest"
    },
    "dependencies": {
       "knex": "^3.1.0",

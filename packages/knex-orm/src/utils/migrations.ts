@@ -1,5 +1,7 @@
 import type { Knex } from 'knex'
-import type { CollectionDefinition, ColumnDefinition, RelationAction, Schema } from '@/types/schema'
+import type { ColumnDefinition } from '@/types/columns'
+import type { RelationAction } from '@/types/relations'
+import type { CollectionDefinition, Schema } from '@/types/schema'
 import { getColumns } from './collections'
 import { getDataTypeAfterCreate, getDataTypeBeforeCreate, getDataTypeCreator } from './data-types'
 

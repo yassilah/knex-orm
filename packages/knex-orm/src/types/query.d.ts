@@ -1,99 +1,36 @@
-/* eslint-disable ts/no-empty-object-type */
-import type { Operator } from ' @/utils/operators'
-import type { Prettify } from './helpers'
-import type { Schema, TableNames, TableRecord, TableRelation, TableRelationNames } from './schema'
+import type { InferColumnType } from './columns'
+import type { FieldName } from './fields'
+import type { PickTableItemDotNotation, Prettify } from './helpers'
+import type { RelationtableTable, TableRelationNames } from './relations'
+import type { Schema, TableItem, TableNames } from './schema'
+import type { DataType } from '@/utils/data-types'
+import type { InferOperatorExpectedValue, Operator } from '@/utils/operators'
 
-export type Primitive = string | number | boolean | Date | null | undefined
+export interface FindQueryParams<S extends Schema, N extends TableNames<S>, C extends FieldName<S, N>[] = []> {
+   columns?: C
+   where?: FilterQuery<S, N>
+   orderBy?: `${'' | '-'}${FieldName<S, T, T, false>}`[]
+   limit?: number
+   offset?: number
+}
 
-export type FieldFilter = | Primitive
-   | {
-      [K in Operator]?: Primitive | Primitive[];
-   }
+type FieldFilter<T extends DataType = DataType> = T | {
+   [K in Operator]?: InferOperatorExpectedValue<K, T>
+}
 
-// Get the target table name for a relation
-type RelationTargetTable<S extends Schema, N extends TableNames<S>, K extends TableRelationNames<S, N>>
-   = TableRelation<S, N, K>['target'] extends TableNames<S>
-      ? TableRelation<S, N, K>['target']
-      : never
+type FieldFilterType<S extends Schema, N extends TableNames<S>, K extends keyof TableItem<S, N>> = K extends infer U extends TableRelationNames<S, N>
+   ? FilterQuery<S, RelationtableTable<S, N, U>>
+   : FieldFilter<InferColumnType<S[N][K]>>
 
-export type FilterQuery<S extends Schema, N extends TableNames<S>> = TableRecord<S, N> extends infer TRecord ? {
-   [K in keyof TRecord]?:
-   K extends TableRelationNames<S, N>
-      ? K extends string
-         ? RelationTargetTable<S, N, K> extends infer TargetTable extends TableNames<S>
-            ? FilterQuery<S, TargetTable>
-            : FieldFilter
-         : FieldFilter
-      : FieldFilter;
+export type FilterQuery<S extends Schema, N extends TableNames<S>> = {
+   [K in keyof TableItem<S, N>]?: FieldFilterType<S, N, K>
 } & {
    $and?: FilterQuery<S, N>[]
    $or?: FilterQuery<S, N>[]
 }
-   : never
 
-type OrderByToken<TRecord extends Record<string, unknown>> = ColumnPath<TRecord> | `-${ColumnPath<TRecord>}`
+export type QueryResult<S extends Schema, N extends TableNames<S>, C extends FieldName<S, N>[] = []> = C extends []
+   ? Prettify<TableItem<S, N, false>>[]
+   : Prettify<PickTableItemDotNotation<S, N, C>>[]
 
-export type OrderByInput<S extends Schema, N extends TableNames<S>> = readonly OrderByToken<TableRecord<S, N>>[]
-
-type ExtractRecord<T> = Extract<T, Record<string, unknown>>
-type ExtractArrayRecord<T> = T extends (infer U)[] ? ExtractRecord<U> : never
-
-type ColumnPathInternal<T, Prefix extends string = ''> = T extends Record<string, unknown>
-   ? {
-         [K in keyof T & string]:
-         T[K] extends (infer _U)[] ? `${Prefix}${K}`
-         | (ExtractArrayRecord<T[K]> extends never ? never : ColumnPathInternal<ExtractArrayRecord<T[K]>, `${Prefix}${K}.`>)
-            : ExtractRecord<T[K]> extends never
-               ? `${Prefix}${K}`
-               : `${Prefix}${K}` | ColumnPathInternal<ExtractRecord<T[K]>, `${Prefix}${K}.`>
-      }[keyof T & string]
-   : never
-
-export type ColumnPath<TRecord extends Record<string, unknown>> = ColumnPathInternal<TRecord> & string
-
-export type ColumnSelection<S extends Schema, N extends TableNames<S>> = ColumnPath<TableRecord<S, N>>[]
-
-type SelectionObject<TRecord extends Record<string, unknown>, Path extends string>
-   = Path extends `${infer Key}.${infer Rest}`
-      ? Key extends keyof TRecord & string
-         ? TRecord[Key] extends (infer _U)[]
-            ? ExtractArrayRecord<TRecord[Key]> extends never
-               ? { [K in Key]: TRecord[Key] }
-               : { [K in Key]: SelectionArray<ExtractArrayRecord<TRecord[Key]>, Rest> }
-            : ExtractRecord<TRecord[Key]> extends never
-               ? { [K in Key]: TRecord[Key] }
-               : { [K in Key]: SelectionObject<ExtractRecord<TRecord[Key]>, Rest> }
-         : {}
-      : Path extends keyof TRecord & string
-         ? { [K in Path]: TRecord[Path] }
-         : {}
-
-type SelectionArray<TItem extends Record<string, unknown>, Path extends string>
-   = Array<SelectionValue<TItem, Path>>
-
-type SelectionValue<TRecord extends Record<string, unknown>, Path extends string>
-   = SelectionObject<TRecord, Path>
-
-type SelectionFromColumns<TRecord extends Record<string, unknown>, Columns extends readonly string[]>
-   = Columns extends readonly [infer Head extends string, ...infer Tail extends readonly string[]]
-      ? Prettify<SelectionObject<TRecord, Head> & SelectionFromColumns<TRecord, Tail>>
-      : {}
-
-export type ColumnSelectionResult<
-   TRecord extends Record<string, unknown>,
-   Columns extends readonly string[] | undefined,
-> = Columns extends readonly string[]
-   ? Prettify<SelectionFromColumns<TRecord, Columns>>
-   : Prettify<TRecord>
-
-export interface FindQueryParams<
-   S extends Schema,
-   N extends TableNames<S>,
-   Columns extends ColumnSelection<S, N> | undefined = undefined,
-> {
-   columns?: Columns
-   where?: FilterQuery<S, N>
-   orderBy?: OrderByInput<S, N>
-   limit?: number
-   offset?: number
-}
+export type QueryResultItem<S extends Schema, N extends TableNames<S>, C extends FieldName<S, N>[] = []> = QueryResult<S, N, C> extends (infer U)[] ? U | undefined : never

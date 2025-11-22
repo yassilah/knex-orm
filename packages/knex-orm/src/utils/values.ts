@@ -1,5 +1,6 @@
 import type { Knex } from 'knex'
-import type { ColumnDefinition, Schema, TableNames } from '@/types/schema'
+import type { ColumnDefinition } from '@/types/columns'
+import type { Schema, TableNames } from '@/types/schema'
 import { getCollection, getColumns } from './collections'
 
 interface ValueTransformer {

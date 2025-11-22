@@ -1,4 +1,5 @@
-import type { BelongsToRelationDefinition, FieldDefinition, HasManyRelationDefinition, HasOneRelationDefinition, ManyToManyRelationDefinition } from '@/types/schema'
+import type { FieldDefinition } from '@/types/fields'
+import type { BelongsToRelationDefinition, HasManyRelationDefinition, HasOneRelationDefinition, ManyToManyRelationDefinition } from '@/types/relations'
 
 /**
  * Check if a relation is a many-to-many relation.

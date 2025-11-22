@@ -43,7 +43,7 @@ describe('schema', () => {
               "nullable": true,
               "onDelete": "CASCADE",
               "onUpdate": "CASCADE",
-              "target": "collections",
+              "table": "collections",
               "type": "belongs-to",
             },
             "created_at": {
@@ -88,11 +88,11 @@ describe('schema', () => {
             "permissions": {
               "foreignKey": "id",
               "nullable": true,
-              "target": "permissions",
+              "table": "permissions",
               "through": {
                 "sourceFk": "policy",
                 "table": "policies_permissions",
-                "targetFk": "permission",
+                "tableFk": "permission",
               },
               "type": "many-to-many",
             },
@@ -119,7 +119,7 @@ describe('schema', () => {
               "nullable": true,
               "onDelete": "CASCADE",
               "onUpdate": "CASCADE",
-              "target": "permissions",
+              "table": "permissions",
               "type": "belongs-to",
             },
             "policy": {
@@ -127,7 +127,7 @@ describe('schema', () => {
               "nullable": true,
               "onDelete": "CASCADE",
               "onUpdate": "CASCADE",
-              "target": "policies",
+              "table": "policies",
               "type": "belongs-to",
             },
             "updated_at": {
@@ -142,7 +142,7 @@ describe('schema', () => {
               "nullable": true,
               "onDelete": "CASCADE",
               "onUpdate": "CASCADE",
-              "target": "users",
+              "table": "users",
               "type": "belongs-to",
             },
             "created_at": {
@@ -164,11 +164,11 @@ describe('schema', () => {
             "tags": {
               "foreignKey": "id",
               "nullable": true,
-              "target": "tags",
+              "table": "tags",
               "through": {
                 "sourceFk": "post",
                 "table": "posts_tags",
-                "targetFk": "tag",
+                "tableFk": "tag",
               },
               "type": "many-to-many",
             },
@@ -199,7 +199,7 @@ describe('schema', () => {
               "nullable": true,
               "onDelete": "CASCADE",
               "onUpdate": "CASCADE",
-              "target": "posts",
+              "table": "posts",
               "type": "belongs-to",
             },
             "tag": {
@@ -207,7 +207,7 @@ describe('schema', () => {
               "nullable": true,
               "onDelete": "CASCADE",
               "onUpdate": "CASCADE",
-              "target": "tags",
+              "table": "tags",
               "type": "belongs-to",
             },
             "updated_at": {
@@ -242,7 +242,7 @@ describe('schema', () => {
               "nullable": true,
               "onDelete": "CASCADE",
               "onUpdate": "CASCADE",
-              "target": "users",
+              "table": "users",
               "type": "belongs-to",
             },
           },
@@ -266,11 +266,11 @@ describe('schema', () => {
             "policies": {
               "foreignKey": "id",
               "nullable": true,
-              "target": "policies",
+              "table": "policies",
               "through": {
                 "sourceFk": "role",
                 "table": "roles_policies",
-                "targetFk": "policy",
+                "tableFk": "policy",
               },
               "type": "many-to-many",
             },
@@ -297,7 +297,7 @@ describe('schema', () => {
               "nullable": true,
               "onDelete": "CASCADE",
               "onUpdate": "CASCADE",
-              "target": "policies",
+              "table": "policies",
               "type": "belongs-to",
             },
             "role": {
@@ -305,7 +305,7 @@ describe('schema', () => {
               "nullable": true,
               "onDelete": "CASCADE",
               "onUpdate": "CASCADE",
-              "target": "roles",
+              "table": "roles",
               "type": "belongs-to",
             },
             "updated_at": {
@@ -357,23 +357,23 @@ describe('schema', () => {
             "posts": {
               "foreignKey": "author",
               "nullable": true,
-              "target": "posts",
+              "table": "posts",
               "type": "has-many",
             },
             "profile": {
               "foreignKey": "user",
               "nullable": true,
-              "target": "profiles",
+              "table": "profiles",
               "type": "has-one",
             },
             "roles": {
               "foreignKey": "id",
               "nullable": true,
-              "target": "roles",
+              "table": "roles",
               "through": {
                 "sourceFk": "user",
                 "table": "users_roles",
-                "targetFk": "role",
+                "tableFk": "role",
               },
               "type": "many-to-many",
             },
@@ -404,7 +404,7 @@ describe('schema', () => {
               "nullable": true,
               "onDelete": "CASCADE",
               "onUpdate": "CASCADE",
-              "target": "roles",
+              "table": "roles",
               "type": "belongs-to",
             },
             "updated_at": {
@@ -417,7 +417,7 @@ describe('schema', () => {
               "nullable": true,
               "onDelete": "CASCADE",
               "onUpdate": "CASCADE",
-              "target": "users",
+              "table": "users",
               "type": "belongs-to",
             },
           },

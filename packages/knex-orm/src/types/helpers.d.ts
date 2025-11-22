@@ -1,6 +1,8 @@
-export type Prettify<T> = {
-   -readonly [K in keyof T]: T[K] extends object ? Prettify<T[K]> : T[K]
-} & {}
+export type Prettify<T> = T extends object ? ({
+   -readonly [K in keyof T]: T[K] extends object
+      ? Prettify<T[K]>
+      : T[K]
+} & {}) : T
 
 export type Merge<T, U> = {
    [K in keyof T | keyof U]: K extends keyof T ? T[K] : K extends keyof U ? U[K] : never
@@ -21,3 +23,6 @@ export type DeepPartial<T extends object> = {
          ? Prettify<DeepPartial<T[P]>>
          : DeepPartialUnion<T[P]>
 }
+
+// Re-export PickTableItemDotNotation from the new clean implementation
+export type { PickTableItemDotNotation } from './item-resolve'

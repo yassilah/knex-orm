@@ -1,7 +1,8 @@
 import type { Knex } from 'knex'
-import type { FieldFilter, FilterQuery } from '@/types/query'
-import type { RelationDefinition, Schema, TableNames } from '@/types/schema'
 import type { Operator } from './operators'
+import type { FieldFilter, FilterQuery } from '@/types/query'
+import type { RelationDefinition } from '@/types/relations'
+import type { Schema, TableNames } from '@/types/schema'
 import { hash } from 'ohash'
 import { getCollection, getColumns, getPrimaryKey, getRelations } from './collections'
 import { OPERATORS } from './operators'
@@ -22,7 +23,7 @@ function applyFieldFilter(builder: Knex.QueryBuilder, column: string, value: Fie
       if (!operatorFn) {
          throw new Error(`Invalid operator: ${operator}`)
       }
-      operatorFn(builder, column, operand)
+      operatorFn(builder, column, operand as never)
    }
 }
 
@@ -43,24 +44,24 @@ function applyRelationFilter<S extends Schema, N extends TableNames<S>>(
       throw new Error(`Relation "${relationName}" not found on table "${baseTable}"`)
    }
 
-   const targetTable = relation.target
-   const targetCollection = schema[targetTable]
-   if (!targetCollection) {
-      throw new Error(`Target table "${targetTable}" not found in schema`)
+   const tableTable = relation.table
+   const tableCollection = schema[tableTable]
+   if (!tableCollection) {
+      throw new Error(`table table "${tableTable}" not found in schema`)
    }
 
    const basePk = getPrimaryKey(collection)
-   const targetPk = getPrimaryKey(targetCollection)
+   const tablePk = getPrimaryKey(tableCollection)
    const relationAlias = hash({ filter: relationName })
    const baseRef = baseTableAlias || baseTable
 
    if (isHasOne(relation) || isHasMany(relation)) {
       qb.innerJoin(
-         `${targetTable} as ${relationAlias}`,
+         `${tableTable} as ${relationAlias}`,
          `${relationAlias}.${relation.foreignKey}`,
          `${baseRef}.${basePk}`,
       )
-      applyFilters(qb, knex, schema, targetTable, nestedFilter, relationAlias)
+      applyFilters(qb, knex, schema, tableTable, nestedFilter, relationAlias)
    }
    else if (isManyToMany(relation)) {
       const { through } = relation
@@ -77,12 +78,12 @@ function applyRelationFilter<S extends Schema, N extends TableNames<S>>(
          `${baseRef}.${basePk}`,
       )
          .innerJoin(
-            `${targetTable} as ${relationAlias}`,
-            `${relationAlias}.${targetPk}`,
-            `${junctionAlias}.${through.targetFk}`,
+            `${tableTable} as ${relationAlias}`,
+            `${relationAlias}.${tablePk}`,
+            `${junctionAlias}.${through.tableFk}`,
          )
 
-      applyFilters(qb, knex, schema, targetTable, nestedFilter, relationAlias)
+      applyFilters(qb, knex, schema, tableTable, nestedFilter, relationAlias)
    }
    else {
       throw new Error(`Unsupported relation type for filtering: ${relation.type}`)
@@ -111,7 +112,7 @@ export function applyFilters<S extends Schema, N extends TableNames<S>>(
 
    const fields = Object.fromEntries(
       Object.entries(query).filter(([k]) => k !== '$and' && k !== '$or'),
-   ) as Record<string, FieldFilter | FilterQuery<S, any>>
+   ) as unknown as Record<string, FieldFilter | FilterQuery<S, any>>
 
    for (const [key, value] of Object.entries(fields)) {
       if (value === undefined) continue

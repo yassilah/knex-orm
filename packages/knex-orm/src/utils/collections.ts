@@ -1,15 +1,10 @@
 import type { DataTypes } from './data-types'
 import type { ColumnDefinitionWithReferences } from './migrations'
 import type { NormalizedCollectionDefinition, NormalizedFieldDefinition } from '@/types/collection'
-import type {
-   BelongsToRelationDefinition,
-   CollectionDefinition,
-   ColumnDefinition,
-   FieldDefinition,
-   RelationDefinition,
-   Schema,
-   TableNames,
-} from '@/types/schema'
+import type { ColumnDefinition } from '@/types/columns'
+import type { FieldDefinition } from '@/types/fields'
+import type { BelongsToRelationDefinition, RelationDefinition } from '@/types/relations'
+import type { CollectionDefinition, Schema, TableNames } from '@/types/schema'
 import defu from 'defu'
 import { isBelongsTo } from './relations'
 
@@ -34,10 +29,10 @@ export function isRelation(field: FieldDefinition): field is RelationDefinition 
  */
 function belongsToColumn(schema: Schema, field: BelongsToRelationDefinition) {
    return {
-      type: schema[field.target][field.foreignKey].type as DataTypes,
+      type: schema[field.table][field.foreignKey].type as DataTypes,
       nullable: field.nullable ?? true,
       references: {
-         table: field.target,
+         table: field.table,
          column: field.foreignKey,
          onDelete: field.onDelete,
          onUpdate: field.onUpdate,

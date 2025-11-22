@@ -1,7 +1,8 @@
 import type { Knex } from 'knex'
+import type { FieldName } from '@/types/fields'
 import type { MutationOptions } from '@/types/orm'
-import type { ColumnSelection, ColumnSelectionResult, FilterQuery, FindQueryParams } from '@/types/query'
-import type { CollectionDefinition, Schema, TableNames, TablePrimaryKeyValue, TableRecord, TableRecordInput } from '@/types/schema'
+import type { FilterQuery, FindQueryParams, QueryResult, QueryResultItem } from '@/types/query'
+import type { CollectionDefinition, Schema, TableItem, TableItemInput, TableNames, TablePrimaryKeyValue } from '@/types/schema'
 import { getCollection, getColumns, getPrimaryKey, getRelations } from './collections'
 import { applyFilters } from './filters'
 import { clientSupportsReturning } from './misc'
@@ -115,32 +116,32 @@ function buildJoinsAndSelects<S extends Schema>(
       const relation = relations[relationName]
       if (!relation) continue
 
-      const targetTable = relation.target
-      const targetAlias = `${prefix}_${relationName}`
-      const targetCollection = schema[targetTable]
-      if (!targetCollection) continue
+      const tableTable = relation.table
+      const tableAlias = `${prefix}_${relationName}`
+      const tableCollection = schema[tableTable]
+      if (!tableCollection) continue
 
-      const targetPk = getPrimaryKey(targetCollection)
+      const tablePk = getPrimaryKey(tableCollection)
 
       if (isHasOne(relation) || isHasMany(relation)) {
-         qb.leftJoin(`${targetTable} as ${targetAlias}`, `${targetAlias}.${relation.foreignKey}`, `${baseAlias}.${basePk}`)
+         qb.leftJoin(`${tableTable} as ${tableAlias}`, `${tableAlias}.${relation.foreignKey}`, `${baseAlias}.${basePk}`)
       }
       else if (isManyToMany(relation)) {
          const { through } = relation
          if (!through) continue
-         const junctionAlias = `${targetAlias}_junction`
+         const junctionAlias = `${tableAlias}_junction`
          qb.leftJoin(`${through.table} as ${junctionAlias}`, `${junctionAlias}.${through.sourceFk}`, `${baseAlias}.${basePk}`)
-         qb.leftJoin(`${targetTable} as ${targetAlias}`, `${targetAlias}.${targetPk}`, `${junctionAlias}.${through.targetFk}`)
+         qb.leftJoin(`${tableTable} as ${tableAlias}`, `${tableAlias}.${tablePk}`, `${junctionAlias}.${through.tableFk}`)
       }
 
-      selects.push(`${targetAlias}.${targetPk} as ${targetAlias}_${targetPk}`)
+      selects.push(`${tableAlias}.${tablePk} as ${tableAlias}_${tablePk}`)
 
       for (const field of tree.fields) {
-         selects.push(`${targetAlias}.${field} as ${targetAlias}_${field}`)
+         selects.push(`${tableAlias}.${field} as ${tableAlias}_${field}`)
       }
 
       if (Object.keys(tree.nested).length > 0) {
-         buildJoinsAndSelects(qb, schema, targetTable, targetAlias, tree.nested, targetAlias, selects)
+         buildJoinsAndSelects(qb, schema, tableTable, tableAlias, tree.nested, tableAlias, selects)
       }
    }
 }
@@ -193,20 +194,20 @@ function reconstructNestedObjects<S extends Schema>(
          const relation = relations[relationName]
          if (!relation) continue
 
-         const targetAlias = `${baseAlias}_${relationName}`
-         const targetCollection = schema[relation.target]
-         if (!targetCollection) continue
+         const tableAlias = `${baseAlias}_${relationName}`
+         const tableCollection = schema[relation.table]
+         if (!tableCollection) continue
 
-         const targetPk = getPrimaryKey(targetCollection)
-         const targetPkAlias = `${targetAlias}_${targetPk}`
-         const targetColumns = getColumns(schema, targetCollection, { includeBelongsTo: true })
+         const tablePk = getPrimaryKey(tableCollection)
+         const tablePkAlias = `${tableAlias}_${tablePk}`
+         const tableColumns = getColumns(schema, tableCollection, { includeBelongsTo: true })
 
          if (isHasOne(relation)) {
-            const relationRow = rows.find(r => r[targetPkAlias] != null)
+            const relationRow = rows.find(r => r[tablePkAlias] != null)
             if (relationRow) {
-               const relationObj = extractRelationObject(relationRow, tree, targetAlias, targetColumns, clientName)
+               const relationObj = extractRelationObject(relationRow, tree, tableAlias, tableColumns, clientName)
                if (Object.keys(tree.nested).length > 0) {
-                  const nested = reconstructNestedObjects(schema, relation.target, [relationRow], tree.nested, targetAlias, clientName)
+                  const nested = reconstructNestedObjects(schema, relation.table, [relationRow], tree.nested, tableAlias, clientName)
                   if (nested.length > 0) Object.assign(relationObj, nested[0])
                }
                if (Object.keys(relationObj).length > 0) {
@@ -217,13 +218,13 @@ function reconstructNestedObjects<S extends Schema>(
          else if (isHasMany(relation) || isManyToMany(relation)) {
             const relationObjects = new Map<string | number, Record<string, unknown>>()
             for (const row of rows) {
-               const relationPk = row[targetPkAlias]
+               const relationPk = row[tablePkAlias]
                if (relationPk != null && (typeof relationPk === 'string' || typeof relationPk === 'number')) {
                   if (!relationObjects.has(relationPk)) {
-                     relationObjects.set(relationPk, extractRelationObject(row, tree, targetAlias, targetColumns, clientName))
+                     relationObjects.set(relationPk, extractRelationObject(row, tree, tableAlias, tableColumns, clientName))
                   }
                   if (Object.keys(tree.nested).length > 0) {
-                     const nested = reconstructNestedObjects(schema, relation.target, [row], tree.nested, targetAlias, clientName)
+                     const nested = reconstructNestedObjects(schema, relation.table, [row], tree.nested, tableAlias, clientName)
                      if (nested.length > 0) Object.assign(relationObjects.get(relationPk)!, nested[0])
                   }
                }
@@ -244,15 +245,15 @@ function reconstructNestedObjects<S extends Schema>(
 function extractRelationObject(
    row: Record<string, unknown>,
    tree: RelationTree,
-   targetAlias: string,
-   targetColumns: Record<string, any>,
+   tableAlias: string,
+   tableColumns: Record<string, any>,
    clientName: string,
 ): Record<string, unknown> {
    const relationObj: Record<string, unknown> = {}
    for (const field of tree.fields) {
-      const alias = `${targetAlias}_${field}`
+      const alias = `${tableAlias}_${field}`
       if (row[alias] !== undefined) {
-         const definition = targetColumns[field]
+         const definition = tableColumns[field]
          if (definition) {
             relationObj[field] = transformOutputColumnValue(clientName, definition.type, row[alias])
          }
@@ -261,8 +262,7 @@ function extractRelationObject(
    return relationObj
 }
 
-type FindParams<S extends Schema, N extends TableNames<S>, Columns extends ColumnSelection<S, N> | undefined = undefined,
-> = FindQueryParams<S, N, Columns> & { trx?: Knex.Transaction }
+type FindParams<S extends Schema, N extends TableNames<S>, C extends FieldName<S, N>[]> = FindQueryParams<S, N, C> & { trx?: Knex.Transaction }
 
 /**
  * Insert a record into a table and return the inserted record.
@@ -291,25 +291,15 @@ async function insertRecord(knex: Knex, tableName: string, collection: Collectio
 /**
  * Find records in a table.
  */
-export function find<
-   S extends Schema,
-   N extends TableNames<S>,
-   Columns extends ColumnSelection<S, N> | undefined = undefined,
->(
-   knex: Knex,
-   schema: S,
-   tableName: N,
-   params?: FindParams<S, N, Columns>,
-) {
-   const { trx, ...rest } = params ?? {}
+export function find<S extends Schema, N extends TableNames<S>, C extends FieldName<S, N>[], P extends FindParams<S, N, C> = FindParams<S, N, C>>(knex: Knex, schema: S, tableName: N, params?: P) {
+   const { trx, ...rest } = (params ?? {}) as P
    const { columns, where, orderBy, limit, offset } = rest
 
    if (hasNestedColumns(columns)) {
-      return findWithRelations(knex, schema, tableName, params as FindParams<S, N, Columns>)
+      return findWithRelations<S, N, C>(knex, schema, tableName, params)
    }
 
-   type Selection = ColumnSelectionResult<TableRecord<S, N>, Columns>
-   const qb = builder(knex, tableName, trx) as Knex.QueryBuilder<Selection, Selection[]>
+   const qb = builder(knex, tableName, trx)
 
    const selectableColumns = extractSelectableColumns(columns)
    qb.select(selectableColumns || '*')
@@ -317,23 +307,19 @@ export function find<
    applyFilters(qb, knex, schema, tableName, where)
    applyQueryOptions(qb, { orderBy, limit, offset })
 
-   return qb
+   return qb as Knex.QueryBuilder<QueryResult<S, N, C>, QueryResult<S, N, C>>
 }
 
 /**
  * Find records with relation loading for nested column selections.
  */
-async function findWithRelations<
-   S extends Schema,
-   N extends TableNames<S>,
-   Columns extends ColumnSelection<S, N> | undefined = undefined,
->(
+async function findWithRelations<S extends Schema, N extends TableNames<S>, C extends FieldName<S, N>[], P extends FindParams<S, N, C> = FindParams<S, N, C>>(
    knex: Knex,
    schema: S,
    tableName: N,
-   params?: FindParams<S, N, Columns>,
-): Promise<ColumnSelectionResult<TableRecord<S, N>, Columns>[]> {
-   const { trx, ...rest } = params ?? {}
+   params?: P,
+) {
+   const { trx, ...rest } = (params ?? {}) as P
    const { columns, where, orderBy, limit, offset } = rest
 
    const { relationTree, baseColumns } = parseColumnPaths(columns ?? [])
@@ -365,10 +351,11 @@ async function findWithRelations<
    const flatRows = await qb
 
    if (Object.keys(relationTree).length > 0) {
-      return reconstructNestedObjects(schema, tableName, flatRows, relationTree, baseAlias, knex.client.config.client) as ColumnSelectionResult<TableRecord<S, N>, Columns>[]
+      return reconstructNestedObjects(schema, tableName, flatRows, relationTree, baseAlias, knex.client.config.client) as QueryResult<S, N, C>
    }
 
    const results: Record<string, unknown>[] = []
+
    for (const row of flatRows) {
       const result: Record<string, unknown> = {}
       for (const key of Object.keys(row)) {
@@ -379,7 +366,7 @@ async function findWithRelations<
       results.push(result)
    }
 
-   return results as ColumnSelectionResult<TableRecord<S, N>, Columns>[]
+   return results as QueryResult<S, N, C>
 }
 
 /**
@@ -393,37 +380,33 @@ function isParamsObject(value: unknown): value is Record<string, unknown> {
 /**
  * Find one record by primary key or filter query.
  */
-export function findOne<
-   S extends Schema,
-   N extends TableNames<S>,
-   Columns extends ColumnSelection<S, N> | undefined = undefined,
->(
+export function findOne<S extends Schema, N extends TableNames<S>, C extends FieldName<S, N>[], P extends FindQueryParams<S, N, C>>(
    knex: Knex,
    schema: S,
    tableName: N,
-   primaryKeyOrParams: TablePrimaryKeyValue<S, N> | FindParams<S, N, Columns>,
-   params?: Omit<FindParams<S, N, Columns>, 'where' | 'limit'>,
+   primaryKeyOrParams: TablePrimaryKeyValue<S, N> | P,
+   params?: Omit<P, 'where' | 'limit'>,
 ) {
    const collection = schema[tableName]
    const primaryKeyColumn = getPrimaryKey(collection)
 
    if (isParamsObject(primaryKeyOrParams)) {
-      const result = find<S, N, Columns>(knex, schema, tableName, { ...primaryKeyOrParams, limit: 1 })
+      const result = find(knex, schema, tableName, { ...primaryKeyOrParams, limit: 1 })
       if (result instanceof Promise) {
-         return result.then(records => records[0])
+         return result.then(records => records?.[0]) as Promise<QueryResultItem<S, N, C>>
       }
-      return result.first()
+      return result.first() as Knex.QueryBuilder<any, QueryResultItem<S, N, C>>
    }
 
    const primaryKey = primaryKeyOrParams as Knex.Value
-   const queryParams = { ...params, limit: 1 }
-   const result = find<S, N, Columns>(knex, schema, tableName, queryParams)
+   const queryParams = { ...params, limit: 1 } as P
+   const result = find(knex, schema, tableName, queryParams)
 
    if ('where' in result) {
-      return result.where(primaryKeyColumn, primaryKey).first()
+      return result.where(primaryKeyColumn, primaryKey).first() as Knex.QueryBuilder<any, QueryResultItem<S, N, C>>
    }
 
-   return result.then(records => records[0])
+   return result.then(records => records?.[0] as QueryResultItem<S, N, C>)
 }
 
 /**
@@ -433,7 +416,7 @@ export async function create<S extends Schema, N extends TableNames<S>>(
    knex: Knex,
    schema: S,
    tableName: N,
-   records: TableRecordInput<S, N>[],
+   records: TableItemInput<S, N>[],
    options?: MutationOptions,
 ) {
    if (!records.length) return []
@@ -442,10 +425,10 @@ export async function create<S extends Schema, N extends TableNames<S>>(
    const clientName = knex.client.config.client?.toString()
 
    return runInTransaction(knex, options, async (trx) => {
-      const created: TableRecord<S, N>[] = []
+      const created: TableItem<S, N>[] = []
 
       for (const record of records) {
-         const { scalar, relations } = partitionRecord(collection, record)
+         const { scalar, relations } = partitionRecord(collection, record as Record<string, unknown>)
 
          await handleBelongsToRelations(knex, schema, relations, scalar, { trx })
          transformInputValue(clientName, schema, tableName, scalar)
@@ -468,10 +451,10 @@ export function createOne<S extends Schema, N extends TableNames<S>>(
    knex: Knex,
    schema: S,
    tableName: N,
-   record: TableRecordInput<S, N>,
+   record: TableItemInput<S, N>,
    options?: MutationOptions,
 ) {
-   return runInTransaction<TableRecord<S, N>>(knex, options, async (trx) => {
+   return runInTransaction<TableItem<S, N>>(knex, options, async (trx) => {
       const created = await create(knex, schema, tableName, [record], { trx })
       return created[0]
    })
@@ -485,7 +468,7 @@ export function update<S extends Schema, N extends TableNames<S>>(
    schema: S,
    tableName: N,
    filter: FilterQuery<S, N>,
-   patch: TableRecordInput<S, N>,
+   patch: TableItemInput<S, N>,
    options?: MutationOptions,
 ) {
    const collection = schema[tableName]
@@ -493,17 +476,17 @@ export function update<S extends Schema, N extends TableNames<S>>(
    const clientName = knex.client.config.client?.toString()
 
    return runInTransaction(knex, options, async (trx) => {
-      const targets = await builder(knex, tableName, trx)
+      const tables = await builder(knex, tableName, trx)
          .modify(qb => applyFilters(qb, knex, schema, tableName, filter))
          .select(primaryKey) as Record<string, unknown>[]
 
-      if (!targets.length) return 0
+      if (!tables.length) return 0
 
-      const ids = targets
+      const ids = tables
          .map(row => row[primaryKey])
          .filter((value): value is string | number => value !== undefined)
 
-      const { scalar, relations } = partitionRecord(collection, patch)
+      const { scalar, relations } = partitionRecord(collection, patch as Record<string, unknown>)
 
       await handleBelongsToRelations(knex, schema, relations, scalar, { trx })
       transformInputValue(clientName, schema, tableName, scalar)
@@ -528,7 +511,7 @@ export function update<S extends Schema, N extends TableNames<S>>(
          await handleChildRelationsOnUpdate(knex, schema, relations, record, { trx }, collection)
       }
 
-      return targets.length
+      return tables.length
    })
 }
 
@@ -540,15 +523,15 @@ export function updateOne<S extends Schema, N extends TableNames<S>>(
    schema: S,
    tableName: N,
    filter: FilterQuery<S, N>,
-   patch: TableRecordInput<S, N>,
+   patch: TableItemInput<S, N>,
    options?: MutationOptions,
-): Promise<TableRecord<S, N> | undefined> {
-   return runInTransaction<TableRecord<S, N> | undefined>(knex, options, async (trx) => {
+): Promise<TableItem<S, N> | undefined> {
+   return runInTransaction<TableItem<S, N> | undefined>(knex, options, async (trx) => {
       await update(knex, schema, tableName, filter, patch, { trx })
       return findOne(knex, schema, tableName, {
          trx,
          where: filter,
-      }) as Promise<TableRecord<S, N> | undefined>
+      }) as Promise<TableItem<S, N> | undefined>
    })
 }
 
@@ -566,13 +549,13 @@ export function remove<S extends Schema, N extends TableNames<S>>(
       const collection = schema[tableName]
       const primaryKey = getPrimaryKey(collection)
 
-      const targets = (await builder(knex, tableName, trx)
+      const tables = (await builder(knex, tableName, trx)
          .modify(qb => applyFilters(qb, knex, schema, tableName, filter))
          .select(primaryKey)) as Record<string, unknown>[]
 
-      if (!targets.length) return 0
+      if (!tables.length) return 0
 
-      const ids = targets
+      const ids = tables
          .map(row => row[primaryKey])
          .filter((value): value is string | number => value !== undefined)
 
@@ -580,7 +563,7 @@ export function remove<S extends Schema, N extends TableNames<S>>(
          await builder(knex, tableName, trx).whereIn(primaryKey, ids).del()
       }
 
-      return targets.length
+      return tables.length
    })
 }
 
@@ -593,11 +576,11 @@ export function removeOne<S extends Schema, N extends TableNames<S>>(
    tableName: N,
    filter: FilterQuery<S, N>,
    options?: MutationOptions,
-): Promise<TableRecord<S, N> | undefined> {
-   return runInTransaction<TableRecord<S, N> | undefined>(knex, options, async (trx) => {
-      const record = await findOne<S, N>(knex, schema, tableName, { trx, where: filter })
+): Promise<TableItem<S, N> | undefined> {
+   return runInTransaction<TableItem<S, N> | undefined>(knex, options, async (trx) => {
+      const record = await findOne(knex, schema, tableName, { trx, where: filter })
       if (!record) return undefined
       await remove(knex, schema, tableName, filter, { trx })
-      return record as TableRecord<S, N>
+      return record as TableItem<S, N>
    })
 }

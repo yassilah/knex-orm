@@ -11,9 +11,9 @@ Create multiple records.
 ```typescript
 create<N>(
   tableName: N,
-  records: TableRecordInput<S, N>[],
+  records: TableItemInput<S, N>[],
   options?: MutationOptions
-): Promise<TableRecord<S, N>[]>
+): Promise<TableItem<S, N>[]>
 ```
 
 ### Parameters
@@ -52,9 +52,9 @@ Create a single record.
 ```typescript
 createOne<N>(
   tableName: N,
-  record: TableRecordInput<S, N>,
+  record: TableItemInput<S, N>,
   options?: MutationOptions
-): Promise<TableRecord<S, N>>
+): Promise<TableItem<S, N>>
 ```
 
 ### Parameters
@@ -95,7 +95,7 @@ Update multiple records.
 update<N>(
   tableName: N,
   filter: FilterQuery<S, N>,
-  patch: TableRecordInput<S, N>,
+  patch: TableItemInput<S, N>,
   options?: MutationOptions
 ): Promise<number>
 ```
@@ -142,9 +142,9 @@ Update a single record.
 updateOne<N>(
   tableName: N,
   filter: FilterQuery<S, N>,
-  patch: TableRecordInput<S, N>,
+  patch: TableItemInput<S, N>,
   options?: MutationOptions
-): Promise<TableRecord<S, N> | undefined>
+): Promise<TableItem<S, N> | undefined>
 ```
 
 ### Parameters
@@ -235,7 +235,7 @@ removeOne<N>(
   tableName: N,
   filter: FilterQuery<S, N>,
   options?: MutationOptions
-): Promise<TableRecord<S, N> | undefined>
+): Promise<TableItem<S, N> | undefined>
 ```
 
 ### Parameters

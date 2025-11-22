@@ -1,7 +1,7 @@
 import type { Knex } from 'knex'
 import type { Buffer } from 'node:buffer'
 import type { z } from 'zod'
-import type { FieldDefinition } from '@/types/schema'
+import type { ColumnDefinition } from '@/types/columns'
 import type { Operator } from '@/utils/operators'
 import { OPERATORS } from '@/utils/operators'
 import binary from './binary'
@@ -119,12 +119,12 @@ export interface DataTypeGroupProps {
 export type DataTypeDefinitions = Record<string, DataTypeProps>
 
 export interface DataTypeProps {
-   create: (obj: { knex: Knex, builder: Knex.CreateTableBuilder | Knex.AlterTableBuilder, columnName: string, definition: FieldDefinition, tableName: string }) => Knex.ColumnBuilder
-   beforeCreate?: (obj: { knex: Knex, columnName: string, tableName: string, definition: FieldDefinition }) => Promise<void> | void
-   afterCreate?: (obj: { knex: Knex, columnName: string, tableName: string, definition: FieldDefinition }) => Promise<void> | void
+   create: (obj: { knex: Knex, builder: Knex.CreateTableBuilder | Knex.AlterTableBuilder, columnName: string, definition: ColumnDefinition, tableName: string }) => Knex.ColumnBuilder
+   beforeCreate?: (obj: { knex: Knex, columnName: string, tableName: string, definition: ColumnDefinition }) => Promise<void> | void
+   afterCreate?: (obj: { knex: Knex, columnName: string, tableName: string, definition: ColumnDefinition }) => Promise<void> | void
    beforeRemove?: (obj: { knex: Knex, columnName: string, tableName: string }) => Promise<void> | void
    afterRemove?: (obj: { knex: Knex, columnName: string, tableName: string }) => Promise<void> | void
-   validate: (obj: { z: typeof z, columnName: string, definition: FieldDefinition, tableName: string }) => z.ZodTypeAny
+   validate: (obj: { z: typeof z, columnName: string, definition: ColumnDefinition, tableName: string }) => z.ZodTypeAny
    operators?: Operator[]
 }
 

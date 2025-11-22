@@ -1,0 +1,28 @@
+import type { BaseFieldDefinition } from './fields'
+import type { BelongsToRelationDefinition } from './relations'
+import type { Schema, TableNames } from './schema'
+import type { DataType, DataTypes } from '@/utils/data-types'
+
+interface BaseColumnDefinition extends BaseFieldDefinition {
+   unique?: boolean
+   precision?: number
+   scale?: number
+   length?: number
+   options?: string[]
+   increments?: boolean
+}
+
+export interface ColumnDefinition extends BaseColumnDefinition {
+   type: DataTypes
+   primary?: boolean
+}
+
+export type TableColumnNames<S extends Schema, T extends TableNames<S>, BelongsTo = true> = {
+   [K in keyof S[T]]: S[T][K] extends (BelongsTo extends true ? ColumnDefinition | BelongsToRelationDefinition : ColumnDefinition) ? K : never
+}[keyof S[T]] & string
+
+export type TableColumn<S extends Schema, T extends TableNames<S>, K extends TableColumnNames<S, T>> = K extends keyof S[T] ? S[T][K] : never
+
+export type InferColumnType<T extends ColumnDefinition, Nullable extends boolean | undefined = T['nullable']> = Nullable extends true
+   ? DataType<T['type']> | null
+   : DataType<T['type']>

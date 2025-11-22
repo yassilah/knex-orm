@@ -94,9 +94,9 @@ Create multiple records:
 ```typescript
 orm.create<N>(
   tableName: N,
-  records: TableRecordInput<S, N>[],
+  records: TableItemInput<S, N>[],
   options?: MutationOptions
-): Promise<TableRecord<S, N>[]>
+): Promise<TableItem<S, N>[]>
 ```
 
 See [Mutation Methods](/api/mutation-methods) for details.
@@ -108,9 +108,9 @@ Create a single record:
 ```typescript
 orm.createOne<N>(
   tableName: N,
-  record: TableRecordInput<S, N>,
+  record: TableItemInput<S, N>,
   options?: MutationOptions
-): Promise<TableRecord<S, N>>
+): Promise<TableItem<S, N>>
 ```
 
 See [Mutation Methods](/api/mutation-methods) for details.
@@ -123,7 +123,7 @@ Update multiple records:
 orm.update<N>(
   tableName: N,
   filter: FilterQuery<S, N>,
-  patch: TableRecordInput<S, N>,
+  patch: TableItemInput<S, N>,
   options?: MutationOptions
 ): Promise<number>
 ```
@@ -138,9 +138,9 @@ Update a single record:
 orm.updateOne<N>(
   tableName: N,
   filter: FilterQuery<S, N>,
-  patch: TableRecordInput<S, N>,
+  patch: TableItemInput<S, N>,
   options?: MutationOptions
-): Promise<TableRecord<S, N> | undefined>
+): Promise<TableItem<S, N> | undefined>
 ```
 
 See [Mutation Methods](/api/mutation-methods) for details.
@@ -168,7 +168,7 @@ orm.removeOne<N>(
   tableName: N,
   filter: FilterQuery<S, N>,
   options?: MutationOptions
-): Promise<TableRecord<S, N> | undefined>
+): Promise<TableItem<S, N> | undefined>
 ```
 
 See [Mutation Methods](/api/mutation-methods) for details.

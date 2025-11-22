@@ -1,6 +1,7 @@
-import type { ColumnSelection, FindQueryParams } from '@/types/query'
-import type { ColumnDefinition, Schema, TableNames, TableRecordInput } from '@/types/schema'
 import type { Operator } from './operators'
+import type { ColumnDefinition } from '@/types/columns'
+import type { ColumnSelection, FindQueryParams } from '@/types/query'
+import type { Schema, TableItemInput, TableNames } from '@/types/schema'
 import z from 'zod'
 import { getCollection, getColumns, getRelations } from './collections'
 import { getDataTypeOperators, getDataTypeValidator } from './data-types'
@@ -103,9 +104,9 @@ export function getWhereValidation<S extends Schema, N extends TableNames<S>>(sc
    }
 
    for (const [relationName, definition] of Object.entries(relations)) {
-      shape[relationName] = (definition.target === tableName
+      shape[relationName] = (definition.table === tableName
          ? selfRef
-         : z.lazy(() => getWhereValidation(schema, definition.target, nextStack))
+         : z.lazy(() => getWhereValidation(schema, definition.table, nextStack))
       ).optional()
    }
 
@@ -135,7 +136,7 @@ function isColumnRequired(column: ColumnDefinition) {
  */
 export interface PayloadSchemaOptions {
    /**
-    * When true (default), all fields are treated as optional to mirror {@link TableRecordInput}.
+    * When true (default), all fields are treated as optional to mirror {@link TableItemInput}.
     * Set to false to enforce required columns.
     */
    partial?: boolean
@@ -174,13 +175,13 @@ function buildPayloadSchema<S extends Schema, N extends TableNames<S>>(schema: S
    }
 
    for (const [relationName, definition] of Object.entries(relations)) {
-      const targetSchema = definition.target === tableName
+      const tableSchema = definition.table === tableName
          ? selfRef
-         : z.lazy(() => buildPayloadSchema(schema, definition.target, options, nextStack))
+         : z.lazy(() => buildPayloadSchema(schema, definition.table, options, nextStack))
 
       const relationSchema = z.union([
-         targetSchema,
-         z.array(targetSchema),
+         tableSchema,
+         z.array(tableSchema),
       ])
 
       shape[relationName] = relationSchema.optional()
@@ -207,9 +208,9 @@ function collectColumnPaths<S extends Schema>(schema: S, tableName: TableNames<S
    }
 
    for (const [relationName, definition] of Object.entries(relations)) {
-      if (nextStack.includes(definition.target)) continue
+      if (nextStack.includes(definition.table)) continue
       const relationPrefix = prefix ? `${prefix}.${relationName}` : relationName
-      const relationPaths = collectColumnPaths(schema, definition.target, relationPrefix, nextStack)
+      const relationPaths = collectColumnPaths(schema, definition.table, relationPrefix, nextStack)
       paths.push(...relationPaths)
    }
 
@@ -256,11 +257,11 @@ function createOrderBySchema<S extends Schema, N extends TableNames<S>>(schema: 
    const allowedList = Array.from(allowedPaths).join(', ')
    return z.array(z.string()).superRefine((values, ctx) => {
       values.forEach((value, index) => {
-         const target = value.startsWith('-') ? value.slice(1) : value
-         if (!allowedPaths.has(target)) {
+         const table = value.startsWith('-') ? value.slice(1) : value
+         if (!allowedPaths.has(table)) {
             ctx.addIssue({
                code: 'custom',
-               message: `Unknown orderBy target "${value}". Allowed columns: ${allowedList}`,
+               message: `Unknown orderBy table "${value}". Allowed columns: ${allowedList}`,
                path: [index],
             })
          }
@@ -318,7 +319,7 @@ export function validateQueryParams<S extends Schema, N extends TableNames<S>>(s
  * Create a payload schema.
  */
 export function getPayloadSchema<S extends Schema, N extends TableNames<S>>(schema: S, tableName: N, options?: PayloadSchemaOptions) {
-   return buildPayloadSchema(schema, tableName, options) as z.ZodType<TableRecordInput<S, N>>
+   return buildPayloadSchema(schema, tableName, options) as z.ZodType<TableItemInput<S, N>>
 }
 
 /**

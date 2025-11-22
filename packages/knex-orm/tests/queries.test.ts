@@ -17,7 +17,10 @@ testAllDrivers('comprehensive instance methods tests (%s)', (driver) => {
 
    describe('find', () => {
       it('should return empty array when no records exist', async () => {
-         const results = await orm.find('users')
+         const results = await orm.find('users', {
+            columns: ['id', 'email'],
+         })
+
          expect(results).toEqual([])
       })
 

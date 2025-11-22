@@ -1,7 +1,8 @@
 import type { Knex } from 'knex'
+import type { FieldName } from './types/fields'
 import type { MutationOptions } from './types/orm'
-import type { ColumnSelection, ColumnSelectionResult, FilterQuery, FindQueryParams } from './types/query'
-import type { CollectionDefinition, Schema, TableNames, TablePrimaryKeyValue, TableRecord, TableRecordInput } from './types/schema'
+import type { FilterQuery, FindQueryParams, QueryResultItem } from './types/query'
+import type { CollectionDefinition, Schema, TableItemInput, TableNames, TablePrimaryKeyValue } from './types/schema'
 import { knex } from 'knex'
 import { installDefaultExtensions } from './extensions'
 import { migrateSchema, planMigrations } from './utils/migrations'
@@ -23,88 +24,63 @@ export function createInstanceWithKnex<S extends Schema>(schema: S, knexInstance
       installDefaultExtensions()
    }
 
-   function find<N extends TableNames<S>, Columns extends ColumnSelection<S, N> | undefined = undefined>(
-      tableName: N,
-      params?: FindQueryParams<S, N, Columns>,
-   ) {
-      return queries.find(knexInstance, schema, tableName, params)
+   /**
+    * Find records in the specified table.
+    */
+   function find<N extends TableNames<S>, C extends FieldName<S, N>[] = []>(tableName: N, params?: FindQueryParams<S, N, C>) {
+      return queries.find<S, N, C>(knexInstance, schema, tableName, params)
    }
 
-   function findOne<
-      N extends TableNames<S>,
-      Columns extends ColumnSelection<S, N> | undefined = undefined,
-   >(
-      tableName: N,
-      primaryKey: TablePrimaryKeyValue<S, N>,
-      params?: Omit<FindQueryParams<S, N, Columns>, 'where' | 'limit'>,
-   ): Promise<ColumnSelectionResult<TableRecord<S, N>, Columns> | undefined>
+   /**
+    * Find a single record by primary key or query parameters.
+    */
+   function findOne<N extends TableNames<S>, C extends FieldName<S, N>[] = []>(tableName: N, primaryKeyOrParams: TablePrimaryKeyValue<S, N> | FindQueryParams<S, N, C>, params?: Omit<FindQueryParams<S, N, C>, 'where' | 'limit'>): Promise<QueryResultItem<S, N, C>>
 
-   function findOne<
-      N extends TableNames<S>,
-      Columns extends ColumnSelection<S, N> | undefined = undefined,
-   >(
-      tableName: N,
-      params: FindQueryParams<S, N, Columns>,
-   ): Promise<ColumnSelectionResult<TableRecord<S, N>, Columns> | undefined>
+   function findOne<N extends TableNames<S>, C extends FieldName<S, N>[] = []>(tableName: N, primaryKeyOrParams: TablePrimaryKeyValue<S, N> | FindQueryParams<S, N, C>, params?: Omit<FindQueryParams<S, N, C>, 'where' | 'limit'>): Promise<QueryResultItem<S, N, C>>
 
-   function findOne<
-      N extends TableNames<S>,
-      Columns extends ColumnSelection<S, N> | undefined = undefined,
-   >(
-      tableName: N,
-      primaryKeyOrParams: TablePrimaryKeyValue<S, N> | FindQueryParams<S, N, Columns>,
-      params?: Omit<FindQueryParams<S, N, Columns>, 'where' | 'limit'>,
-   ): Promise<ColumnSelectionResult<TableRecord<S, N>, Columns> | undefined> {
+   function findOne<N extends TableNames<S>, C extends FieldName<S, N>[] = []>(tableName: N, primaryKeyOrParams: TablePrimaryKeyValue<S, N> | FindQueryParams<S, N, C>, params?: Omit<FindQueryParams<S, N, C>, 'where' | 'limit'>) {
       return queries.findOne(knexInstance, schema, tableName, primaryKeyOrParams, params)
    }
 
-   function create<N extends TableNames<S>>(
-      tableName: N,
-      records: TableRecordInput<S, N>[],
-      options?: MutationOptions,
-   ) {
+   /**
+    * Create new records in the specified table.
+    */
+   function create<N extends TableNames<S>>(tableName: N, records: TableItemInput<S, N>[], options?: MutationOptions) {
       return queries.create(knexInstance, schema, tableName, records, options)
    }
 
-   function createOne<N extends TableNames<S>>(
-      tableName: N,
-      record: TableRecordInput<S, N>,
-      options?: MutationOptions,
-   ) {
+   /**
+    * Create a single record in the specified table.
+    */
+   function createOne<N extends TableNames<S>>(tableName: N, record: TableItemInput<S, N>, options?: MutationOptions) {
       return queries.createOne(knexInstance, schema, tableName, record, options)
    }
 
-   function update<N extends TableNames<S>>(
-      tableName: N,
-      filter: FilterQuery<S, N>,
-      patch: TableRecordInput<S, N>,
-      options?: MutationOptions,
-   ) {
+   /**
+    * Update records in the specified table.
+    */
+   function update<N extends TableNames<S>>(tableName: N, filter: FilterQuery<S, N>, patch: TableItemInput<S, N>, options?: MutationOptions) {
       return queries.update(knexInstance, schema, tableName, filter, patch, options)
    }
 
-   function updateOne<N extends TableNames<S>>(
-      tableName: N,
-      filter: FilterQuery<S, N>,
-      patch: TableRecordInput<S, N>,
-      options?: MutationOptions,
-   ) {
+   /**
+    * Update a single record in the specified table.
+    */
+   function updateOne<N extends TableNames<S>>(tableName: N, filter: FilterQuery<S, N>, patch: TableItemInput<S, N>, options?: MutationOptions) {
       return queries.updateOne(knexInstance, schema, tableName, filter, patch, options)
    }
 
-   function remove<N extends TableNames<S>>(
-      tableName: N,
-      filter: FilterQuery<S, N>,
-      options?: MutationOptions,
-   ) {
+   /**
+    * Remove records from the specified table.
+    */
+   function remove<N extends TableNames<S>>(tableName: N, filter: FilterQuery<S, N>, options?: MutationOptions) {
       return queries.remove(knexInstance, schema, tableName, filter, options)
    }
 
-   function removeOne<N extends TableNames<S>>(
-      tableName: N,
-      filter: FilterQuery<S, N>,
-      options?: MutationOptions,
-   ) {
+   /**
+    * Remove a single record from the specified table.
+    */
+   function removeOne<N extends TableNames<S>>(tableName: N, filter: FilterQuery<S, N>, options?: MutationOptions) {
       return queries.removeOne(knexInstance, schema, tableName, filter, options)
    }
 
