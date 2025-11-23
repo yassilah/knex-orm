@@ -1,6 +1,7 @@
 import type { Operator } from './operators'
 import type { ColumnDefinition } from '@/types/columns'
-import type { ColumnSelection, FindQueryParams } from '@/types/query'
+import type { FieldName } from '@/types/fields'
+import type { FindQueryParams } from '@/types/query'
 import type { Schema, TableItemInput, TableNames } from '@/types/schema'
 import z from 'zod'
 import { getCollection, getColumns, getRelations } from './collections'
@@ -246,7 +247,7 @@ function createColumnSelectionSchema<S extends Schema, N extends TableNames<S>>(
             })
          }
       })
-   }) as unknown as z.ZodType<ColumnSelection<S, N>>
+   }) as unknown as z.ZodType<FieldName<S, N>[]>
 }
 
 /**

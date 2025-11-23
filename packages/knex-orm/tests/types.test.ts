@@ -200,38 +200,186 @@ describe('type tests', () => {
          } | undefined>()
       })
 
-      it('should return the correct type for nested relations with *.*', () => {
-         expectTypeOf<QueryResultItem<typeof schema, 'posts', ['id', 'title', 'author.*.*']>>().toEqualTypeOf<{
+      it('should return the correct type for nested relations with wildcards', () => {
+         expectTypeOf<QueryResultItem<typeof schema, 'users', ['*']>>().toEqualTypeOf<{
             id: number
-            title: string
-            author: {
+            email: string
+            status: string | null
+            created_at: string | Date
+            updated_at: string | Date
+         } | undefined>()
+
+         expectTypeOf<QueryResultItem<typeof schema, 'users', ['*.*']>>().toEqualTypeOf<{
+            id: number
+            email: string
+            status: string | null
+            created_at: string | Date
+            updated_at: string | Date
+            profile: {
                id: number
-               email: string
-               status: string | null
+               display_name: string
+               user: number | null
                created_at: string | Date
                updated_at: string | Date
-               profile: {
-                  id: number
-                  display_name: string
-                  user: number | null
-                  created_at: string | Date
-                  updated_at: string | Date
-               } | null
-               roles: {
+            } | null
+            roles: {
+               id: number
+               name: string
+               created_at: string | Date
+               updated_at: string | Date
+            }[]
+            posts: {
+               id: number
+               title: string
+               slug: string
+               author: number | null
+               created_at: string | Date
+               updated_at: string | Date
+            }[]
+         } | undefined>()
+
+         expectTypeOf<QueryResultItem<typeof schema, 'users', ['*.*.*']>>().toEqualTypeOf<{
+            id: number
+            email: string
+            status: string | null
+            created_at: string | Date
+            updated_at: string | Date
+            profile: {
+               id: number
+               display_name: string
+               user: number | null
+               created_at: string | Date
+               updated_at: string | Date
+            } | null
+            roles: {
+               id: number
+               name: string
+               policies: {
                   id: number
                   name: string
                   created_at: string | Date
                   updated_at: string | Date
                }[]
-               posts: {
+               created_at: string | Date
+               updated_at: string | Date
+            }[]
+            posts: {
+               id: number
+               title: string
+               slug: string
+               author: number | null
+               tags: {
                   id: number
-                  title: string
-                  slug: string
-                  author: number | null
+                  name: string
                   created_at: string | Date
                   updated_at: string | Date
                }[]
+               created_at: string | Date
+               updated_at: string | Date
+            }[]
+         } | undefined>()
+
+         expectTypeOf<QueryResultItem<typeof schema, 'users', ['*.*.*.*']>>().toEqualTypeOf<{
+            id: number
+            email: string
+            status: string | null
+            created_at: string | Date
+            updated_at: string | Date
+            profile: {
+               id: number
+               display_name: string
+               user: number | null
+               created_at: string | Date
+               updated_at: string | Date
             } | null
+            roles: {
+               id: number
+               name: string
+               policies: {
+                  id: number
+                  name: string
+                  created_at: string | Date
+                  updated_at: string | Date
+                  permissions: {
+                     id: number
+                     name: string
+                     action: unknown[] | null
+                     collection: number | null
+                     created_at: string | Date
+                     updated_at: string | Date
+                  }[]
+               }[]
+               created_at: string | Date
+               updated_at: string | Date
+            }[]
+            posts: {
+               id: number
+               title: string
+               slug: string
+               author: number | null
+               tags: {
+                  id: number
+                  name: string
+                  created_at: string | Date
+                  updated_at: string | Date
+               }[]
+               created_at: string | Date
+               updated_at: string | Date
+            }[]
+         } | undefined>()
+
+         expectTypeOf<QueryResultItem<typeof schema, 'users', ['*.*.*.*.*']>>().toEqualTypeOf<{
+            id: number
+            email: string
+            status: string | null
+            created_at: string | Date
+            updated_at: string | Date
+            profile: {
+               id: number
+               display_name: string
+               user: number | null
+               created_at: string | Date
+               updated_at: string | Date
+            } | null
+            roles: {
+               id: number
+               name: string
+               policies: {
+                  id: number
+                  name: string
+                  created_at: string | Date
+                  updated_at: string | Date
+                  permissions: {
+                     id: number
+                     name: string
+                     action: unknown[] | null
+                     collection: {
+                        id: number
+                        name: string
+                        created_at: string | Date
+                        updated_at: string | Date
+                     } | null
+                     created_at: string | Date
+                     updated_at: string | Date
+                  }[]
+               }[]
+               created_at: string | Date
+               updated_at: string | Date
+            }[]
+            posts: {
+               id: number
+               title: string
+               slug: string
+               author: number | null
+               tags: {
+                  id: number
+                  name: string
+                  created_at: string | Date
+                  updated_at: string | Date
+               }[]
+               created_at: string | Date
+               updated_at: string | Date
+            }[]
          } | undefined>()
       })
    })
