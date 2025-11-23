@@ -1,3 +1,4 @@
+import type { MySQLDB } from 'mysql-memory-server/dist/types'
 import type { Instance } from '../src'
 import { createDB } from 'mysql-memory-server'
 import { newDb } from 'pg-mem'
@@ -11,21 +12,29 @@ import { schema } from './schema'
 
 export type TestOrm = Instance<typeof schema>
 
-export const drivers = ['better-sqlite3', 'sqlite3', 'pg', 'mysql2'] as const
+const shouldTestMysql = process.env.TEST_MYSQL === 'true'
+
+export const drivers = [
+   'better-sqlite3',
+   'sqlite3',
+   'pg',
+   ...(shouldTestMysql ? ['mysql2'] : []),
+] as const
 
 type TestDriver = (typeof drivers)[number]
 
 // ============================================================================
 // ORM Setup
 // ============================================================================
-const mysqlServer = await createDB()
+let mysqlServer: MySQLDB | undefined
 
-function createInstanceForDriver(client: TestDriver) {
+async function createInstanceForDriver(client: TestDriver) {
    if (client === 'pg') {
       return createInstanceWithKnex(schema, newDb({ autoCreateForeignKeyIndices: true }).adapters.createKnex())
    }
 
    if (client === 'mysql2') {
+      mysqlServer ??= await createDB()
       return createInstance(schema, {
          client,
          connection: {
@@ -47,8 +56,8 @@ function createInstanceForDriver(client: TestDriver) {
 }
 
 export function setupQueryTests(testName: string, testFn: (getOrm: () => TestOrm) => void) {
-   describe.each(drivers)(testName, (driver) => {
-      let orm = createInstanceForDriver(driver)
+   describe.each(drivers)(testName, async (driver) => {
+      let orm = await createInstanceForDriver(driver)
 
       beforeEach(async () => {
          await orm.migrate()
@@ -56,7 +65,7 @@ export function setupQueryTests(testName: string, testFn: (getOrm: () => TestOrm
 
       afterAll(async () => {
          if (driver !== 'mysql2') return
-         await mysqlServer.stop()
+         await mysqlServer?.stop()
       })
 
       afterEach(async () => {
@@ -70,7 +79,7 @@ export function setupQueryTests(testName: string, testFn: (getOrm: () => TestOrm
          }
          else {
             await orm.knex.destroy()
-            orm = createInstanceForDriver(driver)
+            orm = await createInstanceForDriver(driver)
          }
       })
 
