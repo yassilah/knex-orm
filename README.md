@@ -6,12 +6,17 @@ Custom TypeScript ORM built on Knex that supports Postgres, MySQL, and SQLite wi
 
 - `pnpm-workspace.yaml` – pnpm monorepo definition
 - `packages/knex-orm` – the published package source
-  - `src/schema` – collection definitions and registry helpers
-  - `src/query` – filter and query option utilities
-  - `src/orm` – repository implementation with CRUD helpers
-  - `src/mutation` – nested mutation engine
-  - `src/migrations` – schema diffing and migration runner
-  - `src/bin` – CLI entry for migrations
+  - `src/instance.ts` – ORM instance creation and API
+  - `src/types/` – TypeScript type definitions
+  - `src/utils/` – core utilities
+    - `queries.ts` – query execution and relation loading
+    - `mutations.ts` – create, update, delete operations
+    - `filters.ts` – filter operator implementation
+    - `migrations.ts` – schema diffing and migration runner
+    - `collections.ts` – collection utilities
+    - `schema.ts` – schema definition helpers
+    - `relations.ts` – relation type guards
+    - `validation.ts` – Zod schema validation
 
 ## Getting Started
 
@@ -22,80 +27,111 @@ pnpm build
 
 Use `pnpm lint` for type checking and `pnpm test` (placeholder) for future tests.
 
-## Defining Collections
+## Defining Schema
 
 ```ts
-import { defineCollection } from '@yassidev/knex-orm';
+import { defineSchema, createInstance } from '@yassidev/knex-orm';
 
-export const users = defineCollection({
-  name: 'users',
-  columns: {
-    id: { type: 'uuid', primary: true },
-    email: { type: 'string', unique: true, nullable: false },
-    profile_id: { type: 'uuid' },
+const schema = defineSchema({
+  users: {
+    id: { type: 'integer', primary: true, increments: true },
+    email: { type: 'varchar', unique: true, nullable: false },
+    profile: { type: 'has-one', target: 'profiles' },
   },
-  relations: {
-    profile: { type: 'has-one', target: 'profiles', foreignKey: 'user_id' },
+  profiles: {
+    id: { type: 'integer', primary: true, increments: true },
+    user: { type: 'belongs-to', target: 'users' },
+    bio: { type: 'text', nullable: true },
   },
 });
+
+const orm = createInstance(schema, knexConfig);
 ```
 
-Register collections via `createOrm({ collections: [...] })`. The registry powers repositories, nested mutations, and migrations.
+The schema powers all ORM operations including queries, mutations, and migrations.
 
 ## Query API
 
-- `find` / `findOne`
-- `create` / `createOne`
-- `update` / `updateOne`
-- `delete` / `deleteOne`
+- `find` / `findOne` - Query records with filters and relations
+- `create` / `createOne` - Create records with nested relations
+- `update` / `updateOne` - Update records with filters
+- `remove` / `removeOne` - Delete records with filters
 
-Filters accept Mongo-like operators, e.g.:
+Filters accept MongoDB-like operators:
 
 ```ts
-await repo.find({
-  status: { $eq: 'active' },
-  created_at: { $gte: new Date('2024-01-01') },
+await orm.find('users', {
+  where: {
+    status: { $eq: 'active' },
+    created_at: { $gte: new Date('2024-01-01') },
+  },
+  limit: 10,
+  orderBy: ['-created_at'],
 });
 ```
 
-Options include `limit`, `offset`, `orderBy`, and `select`.
+Load relations using nested column selection:
+
+```ts
+await orm.find('posts', {
+  columns: ['title', 'author.email', 'author.profile.bio'],
+});
+```
 
 ## Nested Mutations
 
-Include relational payloads inside create/update calls:
+Create related records in a single operation:
 
 ```ts
-await usersRepo.createOne({
+await orm.createOne('users', {
   email: 'a@b.com',
-  profile: { displayName: 'Ada' }, // has-one
-  posts: [{ title: 'Hello' }],     // has-many
+  profile: { bio: 'Developer' },  // has-one
+  posts: [{ title: 'Hello' }],    // has-many
 });
 ```
 
-`belongs-to` relations run before inserts, while `has-one`/`has-many`/`many-to-many` execute after the parent row is persisted.
+Update with nested relations:
+
+```ts
+await orm.updateOne('users', 
+  { id: { $eq: 1 } },
+  {
+    email: 'updated@b.com',
+    profile: { bio: 'Updated bio' },
+  }
+);
+```
+
+`belongs-to` relations are processed before parent inserts, while `has-one`, `has-many`, and `many-to-many` are processed after.
 
 ## Schema Migrations
 
-Run `pnpm exec knex-orm-migrate <config-file>` where the config exports the same object you pass to `createOrm`. The CLI loads the collections, compares them to the live database, and applies create/add/alter operations using Knex’s schema builder.
+Automatically sync your database with your schema definition:
 
 ```ts
-// orm.config.mjs
-import { createOrm, defineCollection } from '@yassidev/knex-orm';
+import { createInstance, defineSchema } from '@yassidev/knex-orm';
 
-export default {
-  driver: {
-    client: 'pg',
-    connection: process.env.DATABASE_URL,
+const schema = defineSchema({
+  users: {
+    id: { type: 'integer', primary: true, increments: true },
+    email: { type: 'varchar', unique: true, nullable: false },
   },
-  collections: [users, posts],
-};
+});
+
+const orm = createInstance(schema, knexConfig);
+
+// Preview migrations
+const plan = await orm.planMigrations();
+console.log(plan);
+
+// Apply migrations
+await orm.migrate();
 ```
 
-Invoke migrations:
-
-```bash
-pnpm exec knex-orm-migrate orm.config.mjs
-```
+The migration system compares your schema with the database and applies:
+- New table creation
+- New column additions
+- Column nullable status changes
 
 ## Development Scripts
 

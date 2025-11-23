@@ -27,13 +27,13 @@ await orm.createOne('users', {
 `belongs-to` relations are handled first, before the parent record is created:
 
 ```typescript
-const schema = {
-  posts: defineCollection({
+const schema = defineSchema({
+  posts: {
     id: { type: 'integer', primary: true, increments: true },
     title: { type: 'varchar', nullable: false },
-    author: { type: 'belongs-to', target: 'users', foreignKey: 'id' },
-  }),
-}
+    author: { type: 'belongs-to', target: 'users' },
+  },
+})
 
 // Create post with author
 await orm.createOne('posts', {
@@ -51,18 +51,18 @@ await orm.createOne('posts', {
 `has-one` relations are handled after the parent record is created:
 
 ```typescript
-const schema = {
-  users: defineCollection({
+const schema = defineSchema({
+  users: {
     id: { type: 'integer', primary: true, increments: true },
     email: { type: 'varchar', nullable: false },
-    profile: { type: 'has-one', target: 'profiles', foreignKey: 'user_id' },
-  }),
-  profiles: defineCollection({
+    profile: { type: 'has-one', target: 'profiles' },
+  },
+  profiles: {
     id: { type: 'integer', primary: true, increments: true },
-    user_id: { type: 'belongs-to', target: 'users', foreignKey: 'id' },
+    user: { type: 'belongs-to', target: 'users' },
     bio: { type: 'text', nullable: true },
-  }),
-}
+  },
+})
 
 // Create user with profile
 await orm.createOne('users', {
@@ -81,18 +81,18 @@ await orm.createOne('users', {
 `has-many` relations create multiple related records:
 
 ```typescript
-const schema = {
-  users: defineCollection({
+const schema = defineSchema({
+  users: {
     id: { type: 'integer', primary: true, increments: true },
     email: { type: 'varchar', nullable: false },
-    posts: { type: 'has-many', target: 'posts', foreignKey: 'author_id' },
-  }),
-  posts: defineCollection({
+    posts: { type: 'has-many' },
+  },
+  posts: {
     id: { type: 'integer', primary: true, increments: true },
     title: { type: 'varchar', nullable: false },
-    author_id: { type: 'belongs-to', target: 'users', foreignKey: 'id' },
-  }),
-}
+    user: { type: 'belongs-to', target: 'users' },
+  },
+})
 
 // Create user with multiple posts
 await orm.createOne('users', {
@@ -114,31 +114,29 @@ await orm.createOne('users', {
 `many-to-many` relations use a junction table:
 
 ```typescript
-const schema = {
-  posts: defineCollection({
+const schema = defineSchema({
+  posts: {
     id: { type: 'integer', primary: true, increments: true },
     title: { type: 'varchar', nullable: false },
     tags: {
       type: 'many-to-many',
-      target: 'tags',
-      foreignKey: 'id',
       through: {
         table: 'post_tags',
-        sourceFk: 'post_id',
-        targetFk: 'tag_id',
+        sourceFk: 'post',
+        targetFk: 'tag',
       },
     },
-  }),
-  tags: defineCollection({
+  },
+  tags: {
     id: { type: 'integer', primary: true, increments: true },
     name: { type: 'varchar', unique: true, nullable: false },
-  }),
-  post_tags: defineCollection({
+  },
+  post_tags: {
     id: { type: 'integer', primary: true, increments: true },
-    post_id: { type: 'belongs-to', target: 'posts', foreignKey: 'id' },
-    tag_id: { type: 'belongs-to', target: 'tags', foreignKey: 'id' },
-  }),
-}
+    post: { type: 'belongs-to', target: 'posts' },
+    tag: { type: 'belongs-to', target: 'tags' },
+  },
+})
 
 // Create post with tags
 await orm.createOne('posts', {

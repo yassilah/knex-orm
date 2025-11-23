@@ -7,59 +7,57 @@ This page contains practical examples of common use cases with `@yassidev/knex-o
 A complete blog application with users, posts, and tags:
 
 ```typescript
-import { createInstance, defineCollection } from '@yassidev/knex-orm'
+import { createInstance, defineSchema } from '@yassidev/knex-orm'
 
 // Define schema
-const schema = {
-  users: defineCollection({
+const schema = defineSchema({
+  users: {
     id: { type: 'integer', primary: true, increments: true },
     email: { type: 'varchar', unique: true, nullable: false },
     name: { type: 'varchar', nullable: false },
     status: { type: 'varchar', default: 'active', nullable: false },
     created_at: { type: 'timestamp', default: 'CURRENT_TIMESTAMP', nullable: false },
     
-    posts: { type: 'has-many', target: 'posts', foreignKey: 'author_id' },
-    profile: { type: 'has-one', target: 'profiles', foreignKey: 'user_id' },
-  }),
+    posts: { type: 'has-many' },
+    profile: { type: 'has-one', target: 'profiles' },
+  },
   
-  profiles: defineCollection({
+  profiles: {
     id: { type: 'integer', primary: true, increments: true },
-    user_id: { type: 'belongs-to', target: 'users', foreignKey: 'id' },
+    user: { type: 'belongs-to', target: 'users' },
     bio: { type: 'text', nullable: true },
     avatar_url: { type: 'varchar', nullable: true },
-  }),
+  },
   
-  posts: defineCollection({
+  posts: {
     id: { type: 'integer', primary: true, increments: true },
     title: { type: 'varchar', nullable: false },
     content: { type: 'text', nullable: true },
-    author_id: { type: 'belongs-to', target: 'users', foreignKey: 'id' },
+    user: { type: 'belongs-to', target: 'users' },
     published_at: { type: 'timestamp', nullable: true },
     created_at: { type: 'timestamp', default: 'CURRENT_TIMESTAMP', nullable: false },
     
     tags: {
       type: 'many-to-many',
-      target: 'tags',
-      foreignKey: 'id',
       through: {
         table: 'post_tags',
-        sourceFk: 'post_id',
-        targetFk: 'tag_id',
+        sourceFk: 'post',
+        targetFk: 'tag',
       },
     },
-  }),
+  },
   
-  tags: defineCollection({
+  tags: {
     id: { type: 'integer', primary: true, increments: true },
     name: { type: 'varchar', unique: true, nullable: false },
-  }),
+  },
   
-  post_tags: defineCollection({
+  post_tags: {
     id: { type: 'integer', primary: true, increments: true },
-    post_id: { type: 'belongs-to', target: 'posts', foreignKey: 'id' },
-    tag_id: { type: 'belongs-to', target: 'tags', foreignKey: 'id' },
-  }),
-} as const
+    post: { type: 'belongs-to', target: 'posts' },
+    tag: { type: 'belongs-to', target: 'tags' },
+  },
+})
 
 // Create instance
 const orm = createInstance(schema, {
@@ -141,8 +139,6 @@ async function main() {
     { status: 'inactive' }
   )
   
-  // Cleanup
-  await orm.destroy()
 }
 
 main().catch(console.error)
@@ -198,33 +194,33 @@ async function listActiveUsers(limit = 10, offset = 0) {
 Product catalog with categories and reviews:
 
 ```typescript
-const schema = {
-  categories: defineCollection({
+const schema = defineSchema({
+  categories: {
     id: { type: 'integer', primary: true, increments: true },
     name: { type: 'varchar', nullable: false },
     slug: { type: 'varchar', unique: true, nullable: false },
-  }),
+    products: { type: 'has-many' },
+  },
   
-  products: defineCollection({
+  products: {
     id: { type: 'integer', primary: true, increments: true },
     name: { type: 'varchar', nullable: false },
     description: { type: 'text', nullable: true },
     price: { type: 'decimal', nullable: false },
     stock: { type: 'integer', default: 0, nullable: false },
-    category_id: { type: 'belongs-to', target: 'categories', foreignKey: 'id' },
-    
-    reviews: { type: 'has-many', target: 'reviews', foreignKey: 'product_id' },
-  }),
+    category: { type: 'belongs-to', target: 'categories' },
+    reviews: { type: 'has-many' },
+  },
   
-  reviews: defineCollection({
+  reviews: {
     id: { type: 'integer', primary: true, increments: true },
-    product_id: { type: 'belongs-to', target: 'products', foreignKey: 'id' },
-    user_id: { type: 'belongs-to', target: 'users', foreignKey: 'id' },
+    product: { type: 'belongs-to', target: 'products' },
+    user: { type: 'belongs-to', target: 'users' },
     rating: { type: 'integer', nullable: false },
     comment: { type: 'text', nullable: true },
     created_at: { type: 'timestamp', default: 'CURRENT_TIMESTAMP', nullable: false },
-  }),
-}
+  },
+})
 
 // Find products with reviews
 async function getProductsWithReviews(categorySlug?: string) {

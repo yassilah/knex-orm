@@ -140,10 +140,10 @@ avatar: { type: 'binary', nullable: true }
 Here's a comprehensive example using various data types:
 
 ```typescript
-import { defineCollection } from '@yassidev/knex-orm'
+import { defineSchema } from '@yassidev/knex-orm'
 
-const schema = {
-  products: defineCollection({
+const schema = defineSchema({
+  products: {
     // Primary key
     id: { type: 'integer', primary: true, increments: true },
     
@@ -172,8 +172,8 @@ const schema = {
     
     // Binary
     image: { type: 'binary', nullable: true },
-  }),
-}
+  },
+})
 ```
 
 ## Database-Specific Considerations

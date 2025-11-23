@@ -7,18 +7,18 @@ Examples demonstrating various relation patterns and use cases.
 User with profile:
 
 ```typescript
-const schema = {
-  users: defineCollection({
+const schema = defineSchema({
+  users: {
     id: { type: 'integer', primary: true, increments: true },
     email: { type: 'varchar', nullable: false },
-    profile: { type: 'has-one', target: 'profiles', foreignKey: 'user_id' },
-  }),
-  profiles: defineCollection({
+    profile: { type: 'has-one', target: 'profiles' },
+  },
+  profiles: {
     id: { type: 'integer', primary: true, increments: true },
-    user_id: { type: 'belongs-to', target: 'users', foreignKey: 'id' },
+    user: { type: 'belongs-to', target: 'users' },
     bio: { type: 'text', nullable: true },
-  }),
-}
+  },
+})
 
 // Create user with profile
 const user = await orm.createOne('users', {
@@ -37,18 +37,18 @@ const userWithProfile = await orm.findOne('users', user.id, {
 User with posts:
 
 ```typescript
-const schema = {
-  users: defineCollection({
+const schema = defineSchema({
+  users: {
     id: { type: 'integer', primary: true, increments: true },
     email: { type: 'varchar', nullable: false },
-    posts: { type: 'has-many', target: 'posts', foreignKey: 'author_id' },
-  }),
-  posts: defineCollection({
+    posts: { type: 'has-many' },
+  },
+  posts: {
     id: { type: 'integer', primary: true, increments: true },
     title: { type: 'varchar', nullable: false },
-    author_id: { type: 'belongs-to', target: 'users', foreignKey: 'id' },
-  }),
-}
+    user: { type: 'belongs-to', target: 'users' },
+  },
+})
 
 // Create user with posts
 const user = await orm.createOne('users', {
@@ -70,31 +70,29 @@ const userWithPosts = await orm.findOne('users', user.id, {
 Posts with tags:
 
 ```typescript
-const schema = {
-  posts: defineCollection({
+const schema = defineSchema({
+  posts: {
     id: { type: 'integer', primary: true, increments: true },
     title: { type: 'varchar', nullable: false },
     tags: {
       type: 'many-to-many',
-      target: 'tags',
-      foreignKey: 'id',
       through: {
         table: 'post_tags',
-        sourceFk: 'post_id',
-        targetFk: 'tag_id',
+        sourceFk: 'post',
+        targetFk: 'tag',
       },
     },
-  }),
-  tags: defineCollection({
+  },
+  tags: {
     id: { type: 'integer', primary: true, increments: true },
     name: { type: 'varchar', unique: true, nullable: false },
-  }),
-  post_tags: defineCollection({
+  },
+  post_tags: {
     id: { type: 'integer', primary: true, increments: true },
-    post_id: { type: 'belongs-to', target: 'posts', foreignKey: 'id' },
-    tag_id: { type: 'belongs-to', target: 'tags', foreignKey: 'id' },
-  }),
-}
+    post: { type: 'belongs-to', target: 'posts' },
+    tag: { type: 'belongs-to', target: 'tags' },
+  },
+})
 
 // Create post with tags
 const post = await orm.createOne('posts', {
@@ -116,43 +114,41 @@ const postWithTags = await orm.findOne('posts', post.id, {
 User with profile, posts, and tags:
 
 ```typescript
-const schema = {
-  users: defineCollection({
+const schema = defineSchema({
+  users: {
     id: { type: 'integer', primary: true, increments: true },
     email: { type: 'varchar', nullable: false },
-    profile: { type: 'has-one', target: 'profiles', foreignKey: 'user_id' },
-    posts: { type: 'has-many', target: 'posts', foreignKey: 'author_id' },
-  }),
-  profiles: defineCollection({
+    profile: { type: 'has-one', target: 'profiles' },
+    posts: { type: 'has-many' },
+  },
+  profiles: {
     id: { type: 'integer', primary: true, increments: true },
-    user_id: { type: 'belongs-to', target: 'users', foreignKey: 'id' },
+    user: { type: 'belongs-to', target: 'users' },
     bio: { type: 'text', nullable: true },
-  }),
-  posts: defineCollection({
+  },
+  posts: {
     id: { type: 'integer', primary: true, increments: true },
     title: { type: 'varchar', nullable: false },
-    author_id: { type: 'belongs-to', target: 'users', foreignKey: 'id' },
+    user: { type: 'belongs-to', target: 'users' },
     tags: {
       type: 'many-to-many',
-      target: 'tags',
-      foreignKey: 'id',
       through: {
         table: 'post_tags',
-        sourceFk: 'post_id',
-        targetFk: 'tag_id',
+        sourceFk: 'post',
+        targetFk: 'tag',
       },
     },
-  }),
-  tags: defineCollection({
+  },
+  tags: {
     id: { type: 'integer', primary: true, increments: true },
     name: { type: 'varchar', unique: true, nullable: false },
-  }),
-  post_tags: defineCollection({
+  },
+  post_tags: {
     id: { type: 'integer', primary: true, increments: true },
-    post_id: { type: 'belongs-to', target: 'posts', foreignKey: 'id' },
-    tag_id: { type: 'belongs-to', target: 'tags', foreignKey: 'id' },
-  }),
-}
+    post: { type: 'belongs-to', target: 'posts' },
+    tag: { type: 'belongs-to', target: 'tags' },
+  },
+})
 
 // Create user with everything
 const user = await orm.createOne('users', {

@@ -25,11 +25,10 @@ const schema = defineSchema({
     user: { type: 'belongs-to', target: 'users' },
     tags: {
       type: 'many-to-many',
-      target: 'tags',
       through: {
         table: 'post_tags',
-        sourceFk: 'post_id',
-        targetFk: 'tag_id',
+        sourceFk: 'post',
+        targetFk: 'tag',
       },
     },
   },
@@ -210,15 +209,15 @@ const posts = await orm.find('posts', {
 Here's a complete working example:
 
 ```typescript
-import { createInstance, defineCollection } from '@yassidev/knex-orm'
+import { createInstance, defineSchema } from '@yassidev/knex-orm'
 
-const schema = {
-  users: defineCollection({
+const schema = defineSchema({
+  users: {
     id: { type: 'integer', primary: true, increments: true },
     email: { type: 'varchar', unique: true, nullable: false },
     name: { type: 'varchar', nullable: false },
-  }),
-}
+  },
+})
 
 const orm = createInstance(schema, {
   client: 'sqlite3',
@@ -244,9 +243,6 @@ async function main() {
   await orm.updateOne('users', { id: { $eq: user.id } }, {
     name: 'Updated Name',
   })
-  
-  // Cleanup
-  await orm.destroy()
 }
 
 main().catch(console.error)

@@ -193,20 +193,6 @@ orm.planMigrations(): Promise<SchemaOperation[]>
 
 See [Migrations](/guide/migrations) for details.
 
-### destroy
-
-Close the database connection:
-
-```typescript
-orm.destroy(): Promise<void>
-```
-
-Always call this when you're done with the ORM instance:
-
-```typescript
-await orm.destroy()
-```
-
 ## Type Parameters
 
 The instance is fully typed based on your schema:
@@ -224,15 +210,15 @@ const invalid = await orm.find('invalid') // ❌ TypeScript error
 ## Complete Example
 
 ```typescript
-import { createInstance, defineCollection } from '@yassidev/knex-orm'
+import { createInstance, defineSchema } from '@yassidev/knex-orm'
 
-const schema = {
-  users: defineCollection({
+const schema = defineSchema({
+  users: {
     id: { type: 'integer', primary: true, increments: true },
     email: { type: 'varchar', nullable: false },
     name: { type: 'varchar', nullable: true },
-  }),
-} as const
+  },
+})
 
 const orm = createInstance(schema, {
   client: 'sqlite3',
@@ -260,9 +246,6 @@ async function main() {
   
   // Delete
   await orm.removeOne('users', { id: { $eq: user.id } })
-  
-  // Cleanup
-  await orm.destroy()
 }
 
 main().catch(console.error)

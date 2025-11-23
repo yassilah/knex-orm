@@ -51,12 +51,12 @@ console.log(plan)
 When a table doesn't exist in the database, it will be created:
 
 ```typescript
-const schema = {
-  users: defineCollection({
+const schema = defineSchema({
+  users: {
     id: { type: 'integer', primary: true, increments: true },
     email: { type: 'varchar', nullable: false },
-  }),
-}
+  },
+})
 
 await orm.migrate()
 // Creates the 'users' table with 'id' and 'email' columns
@@ -68,13 +68,13 @@ When a new column is added to your schema, it will be added to the table:
 
 ```typescript
 // Schema updated to include 'name' column
-const schema = {
-  users: defineCollection({
+const schema = defineSchema({
+  users: {
     id: { type: 'integer', primary: true, increments: true },
     email: { type: 'varchar', nullable: false },
     name: { type: 'varchar', nullable: true }, // New column
-  }),
-}
+  },
+})
 
 await orm.migrate()
 // Adds 'name' column to 'users' table
@@ -86,12 +86,12 @@ When a column's nullable status changes, it will be altered:
 
 ```typescript
 // Schema updated: 'email' is now required
-const schema = {
-  users: defineCollection({
+const schema = defineSchema({
+  users: {
     id: { type: 'integer', primary: true, increments: true },
     email: { type: 'varchar', nullable: false }, // Changed from nullable: true
-  }),
-}
+  },
+})
 
 await orm.migrate()
 // Alters 'email' column to be NOT NULL
@@ -181,23 +181,24 @@ await orm.knex.schema.alterTable('users', (table) => {
 ## Example: Complete Migration Flow
 
 ```typescript
-import { createInstance, defineCollection } from '@yassidev/knex-orm'
+import { createInstance, defineSchema } from '@yassidev/knex-orm'
 
-const schema = {
-  users: defineCollection({
+const schema = defineSchema({
+  users: {
     id: { type: 'integer', primary: true, increments: true },
     email: { type: 'varchar', unique: true, nullable: false },
     name: { type: 'varchar', nullable: true },
     created_at: { type: 'timestamp', default: 'CURRENT_TIMESTAMP', nullable: false },
-  }),
-  posts: defineCollection({
+    posts: { type: 'has-many' },
+  },
+  posts: {
     id: { type: 'integer', primary: true, increments: true },
     title: { type: 'varchar', nullable: false },
     content: { type: 'text', nullable: true },
-    author_id: { type: 'belongs-to', target: 'users', foreignKey: 'id' },
+    user: { type: 'belongs-to', target: 'users' },
     created_at: { type: 'timestamp', default: 'CURRENT_TIMESTAMP', nullable: false },
-  }),
-} as const
+  },
+})
 
 const orm = createInstance(schema, {
   client: 'postgres',
