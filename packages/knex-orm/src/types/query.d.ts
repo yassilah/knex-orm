@@ -14,13 +14,14 @@ export interface FindQueryParams<S extends Schema, N extends TableNames<S>, C ex
    offset?: number
 }
 
-type FieldFilter<T extends DataType = DataType> = T | T[] | {
-   [K in Operator]?: InferOperatorExpectedValue<K, T>
-}
+/** Filter value for a column (value, array, or operator object) */
+type FieldFilter<T extends DataType = DataType>
+   = T | T[] | { [K in Operator]?: InferOperatorExpectedValue<K, T> }
 
-type FieldFilterType<S extends Schema, N extends TableNames<S>, K extends keyof TableItem<S, N>> = K extends infer U extends TableRelationNames<S, N>
-   ? FieldFilter<InferColumnType<RelationForeignKeyColumn<S, TableRelation<S, N, U>>>> | FilterQuery<S, RelationtableTable<S, N, U>>
-   : FieldFilter<InferColumnType<S[N][K]>>
+/** Filter type for field (supports relation filters) */
+type FieldFilterType<S extends Schema, N extends TableNames<S>, K extends keyof TableItem<S, N>>
+   = K extends TableRelationNames<S, N> ? FieldFilter<InferColumnType<RelationForeignKeyColumn<S, TableRelation<S, N, K>>>> | FilterQuery<S, RelationtableTable<S, N, K>>
+      : FieldFilter<InferColumnType<S[N][K]>>
 
 export type FilterQuery<S extends Schema, N extends TableNames<S>> = Prettify<{
    [K in keyof TableItem<S, N>]?: FieldFilterType<S, N, K>

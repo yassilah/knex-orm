@@ -11,7 +11,17 @@ export interface BaseFieldDefinition {
 
 export type FieldDefinition = ColumnDefinition | RelationDefinition
 
-export type FieldName<S extends Schema, T extends TableNames<S>, Deep = true, RootTable = T, Placeholder = true>
-   = | TableColumnNames<S, T>
-      | (Placeholder extends true ? Deep extends true ? GenerateNestedWildcards<S, T, RootTable> : '*' : never)
-      | (Deep extends true ? RelatedFieldName<S, T, RootTable, Placeholder> : never)
+/** All valid field selectors for a table (columns, wildcards, nested paths) */
+export type FieldName<
+   S extends Schema,
+   T extends TableNames<S>,
+   Deep = true,
+   RootTable = T,
+   Placeholder = true,
+> = TableColumnNames<S, T>
+   | (Placeholder extends true
+      ? Deep extends true
+         ? GenerateNestedWildcards<S, T, RootTable>
+         : '*'
+      : never)
+   | (Deep extends true ? RelatedFieldName<S, T, RootTable, Placeholder> : never)
