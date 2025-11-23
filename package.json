@@ -17,6 +17,7 @@
     "@apenhet/eslint-config": "^2.12.5",
     "@types/node": "^24.10.1",
     "eslint": "^9.39.1",
+    "mysql-memory-server": "^1.13.0",
     "sqlite3": "^5.1.7",
     "ts-node": "^10.9.2",
     "tsx": "^4.20.6",

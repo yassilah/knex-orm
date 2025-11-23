@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { schema } from './test-helpers'
+import { schema } from './schema'
 
 describe('schema', () => {
    it('should normalize the whole schema correctly', () => {

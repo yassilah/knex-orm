@@ -4,7 +4,7 @@ import type { FilterQuery } from '@/types/query'
 import type { RelationDefinition } from '@/types/relations'
 import type { CollectionDefinition, Schema, TableItem, TableItemInput, TableNames, TablePrimaryKeyValue } from '@/types/schema'
 import { getPrimaryKey, getRelations } from './collections'
-import { toArray } from './misc'
+import { isNonNullish, toArray } from './misc'
 import { create, createOne, findOne, remove, updateOne } from './queries'
 import { isManyToMany } from './relations'
 
@@ -20,7 +20,7 @@ interface RelationPayload {
 export function partitionRecord(collection: CollectionDefinition, record: Record<string, unknown>) {
    const scalar: Record<string, unknown> = {}
    const relations: RelationPayload[] = []
-   const relationMap = getRelations(collection)
+   const relationMap = getRelations(collection, { includeBelongsTo: true })
 
    for (const [key, value] of Object.entries(record)) {
       if (relationMap[key]) {
@@ -71,6 +71,12 @@ export async function handleBelongsToRelations<S extends Schema>(knex: Knex, sch
    for (const relation of belongsToRelations) {
       if (!relation.value) continue
 
+      // If the value is a scalar (number, string), treat it as a foreign key ID directly
+      if (typeof relation.value === 'number' || typeof relation.value === 'string') {
+         scalar[relation.name] = relation.value
+         continue
+      }
+
       const tableName = relation.definition.table
       const tableMeta = schema[tableName]
       const [payload] = toArray(relation.value) as TableItemInput<S, TableNames<S>>[]
@@ -111,11 +117,18 @@ export async function handleChildRelationsOnCreate<S extends Schema>(knex: Knex,
          }
 
          if (related.length > 0) {
-            const rows = related.map(record => ({
-               [through.sourceFk]: parentPkValue,
-               [through.tableFk]: (record as Record<string, unknown>)[tablePk],
-            })) as TableItemInput<S, TableNames<S>>[]
-            await create(knex, schema, through.table, rows, options)
+            const rows = related.map((record) => {
+               const fkValue = record[tablePk as keyof typeof record]
+               if (fkValue === undefined) return
+               return {
+                  [through.sourceFk]: parentPkValue,
+                  [through.tableFk]: fkValue,
+               } as TableItemInput<S, TableNames<S>>
+            }).filter(isNonNullish)
+
+            if (rows.length > 0) {
+               await create(knex, schema, through.table, rows, options)
+            }
          }
          continue
       }
@@ -159,11 +172,19 @@ export async function handleChildRelationsOnUpdate<S extends Schema>(knex: Knex,
          }
 
          if (related.length > 0) {
-            const rows = related.map(record => ({
-               [through.sourceFk]: parentPkValue,
-               [through.tableFk]: (record as Record<string, unknown>)[tablePk],
-            })) as TableItemInput<S, TableNames<S>>[]
-            await create(knex, schema, through.table, rows, options)
+            const rows = related
+               .map((record) => {
+                  const fkValue = record[tablePk as keyof typeof record]
+                  if (fkValue === undefined) return
+                  return {
+                     [through.sourceFk]: parentPkValue,
+                     [through.tableFk]: fkValue,
+                  } as TableItemInput<S, TableNames<S>>
+               })
+               .filter(isNonNullish)
+            if (rows.length > 0) {
+               await create(knex, schema, through.table, rows, options)
+            }
          }
          continue
       }

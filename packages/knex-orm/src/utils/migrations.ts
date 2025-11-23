@@ -49,6 +49,8 @@ function applyColumnDefinition(knex: Knex, builder: Knex.CreateTableBuilder | Kn
    if (definition.nullable === false) column.notNullable()
    else column.nullable()
 
+   if (definition.unsigned) column.unsigned()
+
    if (definition.default !== undefined) {
       column.defaultTo(getDefaultValue(knex, definition.default))
    }

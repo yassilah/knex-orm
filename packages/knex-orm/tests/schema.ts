@@ -1,6 +1,4 @@
-import { newDb } from 'pg-mem'
-import { describe } from 'vitest'
-import { createInstance, createInstanceWithKnex, defineSchema, withDefaults } from '../src'
+import { defineSchema, withDefaults } from '../src'
 
 export const schema = defineSchema({
    users: withDefaults({
@@ -57,24 +55,3 @@ export const schema = defineSchema({
       permission: { type: 'belongs-to', foreignKey: 'id', table: 'permissions' },
    }),
 })
-
-export function createOrmForDriver(client: TestDriver) {
-   if (client === 'pg') {
-      const knexInstance = newDb({ autoCreateForeignKeyIndices: true }).adapters.createKnex()
-      return createInstanceWithKnex(schema, knexInstance)
-   }
-
-   return createInstance(schema, {
-      client,
-      connection: { filename: ':memory:' },
-      useNullAsDefault: true,
-   })
-}
-
-export const drivers = ['better-sqlite3', 'sqlite3', 'pg'] as const
-
-type TestDriver = (typeof drivers)[number]
-
-export function testAllDrivers(name: string, fn: (driver: TestDriver) => void) {
-   describe.each(drivers)(name, fn)
-}

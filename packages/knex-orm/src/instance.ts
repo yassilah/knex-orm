@@ -100,9 +100,6 @@ export function createInstanceWithKnex<S extends Schema>(schema: S, knexInstance
       async planMigrations() {
          return planMigrations(knexInstance, schema)
       },
-      async destroy() {
-         await knexInstance.destroy()
-      },
    }
 }
 

@@ -22,3 +22,10 @@ export function clientSupportsReturning(knex: Knex) {
    const clientName = knex.client.config.client
    return clientName === 'pg'
 }
+
+/**
+ * Check if a value is not null or undefined.
+ */
+export function isNonNullish<T>(value: T): value is NonNullable<T> {
+   return value !== null && value !== undefined
+}

@@ -20,6 +20,15 @@ export default function install() {
       },
    })
 
+   defineValueTransformer('mysql2', 'enum-array', {
+      serialize(value) {
+         return Array.isArray(value) ? value.join(',') : value
+      },
+      deserialize(value) {
+         return Array.isArray(value) ? value : value?.toString().split(',').filter(Boolean)
+      },
+   })
+
    defineDataType('string', 'enum-array', {
       beforeCreate: ({ knex, columnName, tableName, definition }) => {
          if (knex.client.config.client === 'pg') {
@@ -38,7 +47,7 @@ export default function install() {
             return builder.specificType(columnName, `${enumTypeName}[]`)
          }
          else if (knex.client.config.client.includes('mysql')) {
-            return builder.specificType(columnName, `enum(${(definition.options || []).map(opt => `'${opt}'`).join(',')})`)
+            return builder.specificType(columnName, `set(${(definition.options || []).map(opt => `'${opt}'`).join(',')})`)
          }
 
          return builder.text(columnName)

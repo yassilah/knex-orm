@@ -1,5 +1,5 @@
 import type { Instance } from '../src'
-import type { schema } from './test-helpers'
+import type { schema } from './schema'
 import type { FieldName } from '@/types/fields'
 import type { QueryResultItem } from '@/types/query'
 import type { TableItem } from '@/types/schema'

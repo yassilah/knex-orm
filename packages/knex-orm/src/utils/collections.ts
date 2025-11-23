@@ -28,9 +28,13 @@ export function isRelation(field: FieldDefinition): field is RelationDefinition 
  * Get belongsTo relation from a collection definition
  */
 function belongsToColumn(schema: Schema, field: BelongsToRelationDefinition) {
+   const referencedField = schema[field.table][field.foreignKey]
+   const referencedColumnDef = isColumn(referencedField) ? referencedField : null
+
    return {
       type: schema[field.table][field.foreignKey].type as DataTypes,
       nullable: field.nullable ?? true,
+      unsigned: referencedColumnDef?.increments === true,
       references: {
          table: field.table,
          column: field.foreignKey,

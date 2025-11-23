@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 import { installDefaultExtensions, validateCollectionName, validatePayload, validateQueryParams } from '../src'
-import { schema } from './test-helpers'
+import { schema } from './schema'
 
 describe('validation utils', () => {
    beforeAll(installDefaultExtensions)

@@ -10,6 +10,7 @@ interface BaseColumnDefinition extends BaseFieldDefinition {
    length?: number
    options?: string[]
    increments?: boolean
+   unsigned?: boolean
 }
 
 export interface ColumnDefinition extends BaseColumnDefinition {

@@ -7,7 +7,7 @@ import { getCollection, getColumns, getPrimaryKey, getRelations } from './collec
 import { applyFilters } from './filters'
 import { clientSupportsReturning } from './misc'
 import { handleBelongsToRelations, handleChildRelationsOnCreate, handleChildRelationsOnUpdate, partitionRecord } from './mutations'
-import { isHasMany, isHasOne, isManyToMany } from './relations'
+import { isBelongsTo, isHasMany, isHasOne, isManyToMany } from './relations'
 import { runInTransaction } from './transactions'
 import { attachRowNormalizer, transformInputValue, transformOutputColumnValue, transformOutputValue } from './values'
 
@@ -102,20 +102,20 @@ function parseColumnPaths(columns: readonly string[]): { relationTree: Record<st
 function buildJoinsAndSelects<S extends Schema>(
    qb: Knex.QueryBuilder,
    schema: S,
-   baseTable: string,
+   baseTable: TableNames<S>,
    baseAlias: string,
    relationTree: Record<string, RelationTree>,
    prefix: string,
    selects: string[],
-): void {
+   rootTable: TableNames<S>,
+) {
    const collection = getCollection(schema, baseTable)
-   const relations = getRelations(collection)
+   const relations = getRelations(collection, { includeBelongsTo: true })
    const basePk = getPrimaryKey(collection)
 
    for (const [relationName, tree] of Object.entries(relationTree)) {
       const relation = relations[relationName]
       if (!relation) continue
-
       const tableTable = relation.table
       const tableAlias = `${prefix}_${relationName}`
       const tableCollection = schema[tableTable]
@@ -123,7 +123,13 @@ function buildJoinsAndSelects<S extends Schema>(
 
       const tablePk = getPrimaryKey(tableCollection)
 
-      if (isHasOne(relation) || isHasMany(relation)) {
+      if (tableTable === rootTable) continue
+
+      if (isBelongsTo(relation)) {
+         const foreignKeyColumn = relationName
+         qb.leftJoin(`${tableTable} as ${tableAlias}`, `${baseAlias}.${foreignKeyColumn}`, `${tableAlias}.${tablePk}`)
+      }
+      else if (isHasOne(relation) || isHasMany(relation)) {
          qb.leftJoin(`${tableTable} as ${tableAlias}`, `${tableAlias}.${relation.foreignKey}`, `${baseAlias}.${basePk}`)
       }
       else if (isManyToMany(relation)) {
@@ -136,12 +142,22 @@ function buildJoinsAndSelects<S extends Schema>(
 
       selects.push(`${tableAlias}.${tablePk} as ${tableAlias}_${tablePk}`)
 
-      for (const field of tree.fields) {
-         selects.push(`${tableAlias}.${field} as ${tableAlias}_${field}`)
+      if (tree.fields.size === 0 || tree.fields.has('*')) {
+         const tableColumns = getColumns(schema, tableCollection, { includeBelongsTo: true })
+         for (const field of Object.keys(tableColumns)) {
+            if (field !== tablePk) {
+               selects.push(`${tableAlias}.${field} as ${tableAlias}_${field}`)
+            }
+         }
+      }
+      else {
+         for (const field of tree.fields) {
+            selects.push(`${tableAlias}.${field} as ${tableAlias}_${field}`)
+         }
       }
 
       if (Object.keys(tree.nested).length > 0) {
-         buildJoinsAndSelects(qb, schema, tableTable, tableAlias, tree.nested, tableAlias, selects)
+         buildJoinsAndSelects(qb, schema, tableTable, tableAlias, tree.nested, tableAlias, selects, rootTable)
       }
    }
 }
@@ -156,12 +172,15 @@ function reconstructNestedObjects<S extends Schema>(
    relationTree: Record<string, RelationTree>,
    baseAlias: string,
    clientName: string,
+   hasExplicitBaseColumns: boolean = true,
+   requestedBaseColumns: Set<string> = new Set(),
+   hasWildcardInBase: boolean = false,
 ): Record<string, unknown>[] {
    if (!flatRows.length) return []
 
    const collection = getCollection(schema, baseTable)
    const columns = getColumns(schema, collection, { includeBelongsTo: true })
-   const relations = getRelations(collection)
+   const relations = getRelations(collection, { includeBelongsTo: true })
    const basePk = getPrimaryKey(collection)
    const basePkAlias = `${baseAlias}_${basePk}`
 
@@ -180,12 +199,29 @@ function reconstructNestedObjects<S extends Schema>(
       const baseRow = rows[0]
       const result: Record<string, unknown> = {}
 
-      for (const key of Object.keys(baseRow)) {
-         if (key.startsWith(`${baseAlias}_`) && !key.includes('_junction')) {
-            const field = key.replace(`${baseAlias}_`, '')
-            const definition = columns[field]
-            if (definition) {
-               result[field] = transformOutputColumnValue(clientName, definition.type, baseRow[key])
+      const belongsToForeignKeys = new Set<string>()
+      for (const [relationName] of Object.entries(relationTree)) {
+         const relation = relations[relationName]
+         if (relation && isBelongsTo(relation)) {
+            belongsToForeignKeys.add(relationName)
+         }
+      }
+
+      // Only include base columns if they were explicitly requested
+      if (hasExplicitBaseColumns) {
+         for (const key of Object.keys(baseRow)) {
+            if (key.startsWith(`${baseAlias}_`) && !key.includes('_junction')) {
+               const field = key.replace(`${baseAlias}_`, '')
+               if (belongsToForeignKeys.has(field)) continue
+               // If specific columns were requested (not '*'), only include those (PK is always needed for grouping)
+               // If '*' was used, include all columns
+               if (!hasWildcardInBase && requestedBaseColumns.size > 0 && field !== basePk && !requestedBaseColumns.has(field)) {
+                  continue
+               }
+               const definition = columns[field]
+               if (definition) {
+                  result[field] = transformOutputColumnValue(clientName, definition.type, baseRow[key])
+               }
             }
          }
       }
@@ -202,12 +238,12 @@ function reconstructNestedObjects<S extends Schema>(
          const tablePkAlias = `${tableAlias}_${tablePk}`
          const tableColumns = getColumns(schema, tableCollection, { includeBelongsTo: true })
 
-         if (isHasOne(relation)) {
+         if (isBelongsTo(relation) || isHasOne(relation)) {
             const relationRow = rows.find(r => r[tablePkAlias] != null)
             if (relationRow) {
                const relationObj = extractRelationObject(relationRow, tree, tableAlias, tableColumns, clientName)
                if (Object.keys(tree.nested).length > 0) {
-                  const nested = reconstructNestedObjects(schema, relation.table, [relationRow], tree.nested, tableAlias, clientName)
+                  const nested = reconstructNestedObjects(schema, relation.table, [relationRow], tree.nested, tableAlias, clientName, true, new Set(), false)
                   if (nested.length > 0) Object.assign(relationObj, nested[0])
                }
                if (Object.keys(relationObj).length > 0) {
@@ -224,7 +260,7 @@ function reconstructNestedObjects<S extends Schema>(
                      relationObjects.set(relationPk, extractRelationObject(row, tree, tableAlias, tableColumns, clientName))
                   }
                   if (Object.keys(tree.nested).length > 0) {
-                     const nested = reconstructNestedObjects(schema, relation.table, [row], tree.nested, tableAlias, clientName)
+                     const nested = reconstructNestedObjects(schema, relation.table, [row], tree.nested, tableAlias, clientName, true, new Set(), false)
                      if (nested.length > 0) Object.assign(relationObjects.get(relationPk)!, nested[0])
                   }
                }
@@ -250,7 +286,12 @@ function extractRelationObject(
    clientName: string,
 ): Record<string, unknown> {
    const relationObj: Record<string, unknown> = {}
-   for (const field of tree.fields) {
+   // If fields set is empty or contains '*', load all columns
+   const fieldsToExtract = tree.fields.size === 0 || tree.fields.has('*')
+      ? Object.keys(tableColumns)
+      : Array.from(tree.fields)
+
+   for (const field of fieldsToExtract) {
       const alias = `${tableAlias}_${field}`
       if (row[alias] !== undefined) {
          const definition = tableColumns[field]
@@ -295,13 +336,13 @@ export function find<S extends Schema, N extends TableNames<S>, C extends FieldN
    const { trx, ...rest } = (params ?? {}) as P
    const { columns, where, orderBy, limit, offset } = rest
 
-   if (hasNestedColumns(columns)) {
+   if (hasNestedColumns(columns as readonly string[] | undefined) || (columns && Array.from(columns as readonly string[]).includes('*'))) {
       return findWithRelations<S, N, C>(knex, schema, tableName, params)
    }
 
    const qb = builder(knex, tableName, trx)
 
-   const selectableColumns = extractSelectableColumns(columns)
+   const selectableColumns = extractSelectableColumns(columns as readonly string[] | undefined)
    qb.select(selectableColumns || '*')
    attachRowNormalizer(qb, schema, tableName)
    applyFilters(qb, knex, schema, tableName, where)
@@ -322,7 +363,7 @@ async function findWithRelations<S extends Schema, N extends TableNames<S>, C ex
    const { trx, ...rest } = (params ?? {}) as P
    const { columns, where, orderBy, limit, offset } = rest
 
-   const { relationTree, baseColumns } = parseColumnPaths(columns ?? [])
+   const { relationTree, baseColumns } = parseColumnPaths((columns ?? []) as readonly string[])
    const baseAlias = tableName
    const qb = builder(knex, `${tableName} as ${baseAlias}`, trx)
 
@@ -330,18 +371,76 @@ async function findWithRelations<S extends Schema, N extends TableNames<S>, C ex
    const collection = getCollection(schema, tableName)
    const basePk = getPrimaryKey(collection)
    const allColumns = Object.keys(getColumns(schema, collection, { includeBelongsTo: true }))
-   const columnsToSelect = baseColumns.length > 0 ? baseColumns : allColumns
+
+   function expandWildcards(tree: Record<string, RelationTree>, schema: S, tableName: string, visitedTables: Set<string> = new Set()): Record<string, RelationTree> {
+      const expanded: Record<string, RelationTree> = {}
+      const collection = getCollection(schema, tableName)
+      const relations = getRelations(collection, { includeBelongsTo: true })
+
+      // Add current table to visited set to prevent cycles
+      const currentPath = new Set(visitedTables)
+      currentPath.add(tableName)
+
+      for (const [relationName, relationTree] of Object.entries(tree)) {
+         if (relationName === '*') {
+            for (const relName of Object.keys(relations)) {
+               const relation = relations[relName]
+               // Skip relations that would create a cycle back to a parent table
+               if (currentPath.has(relation.table)) {
+                  continue
+               }
+               const nestedExpanded = expandWildcards(relationTree.nested, schema, relation.table, currentPath)
+               expanded[relName] = {
+                  fields: new Set(relationTree.fields),
+                  nested: nestedExpanded,
+               }
+            }
+         }
+         else {
+            const relation = relations[relationName]
+            if (!relation) continue
+            // Skip relations that would create a cycle back to a parent table
+            if (currentPath.has(relation.table)) {
+               continue
+            }
+            const nestedExpanded = expandWildcards(relationTree.nested, schema, relation.table, currentPath)
+            expanded[relationName] = {
+               fields: new Set(relationTree.fields),
+               nested: nestedExpanded,
+            }
+         }
+      }
+
+      return expanded
+   }
+
+   const finalRelationTree = expandWildcards(relationTree, schema, tableName)
+
+   // Track which base columns were explicitly requested (excluding PK which is always needed for joins)
+   const requestedBaseColumns = new Set(baseColumns.filter(col => col !== '*' && col !== basePk))
+   const hasWildcardInBase = baseColumns.includes('*')
+   // Check if relation tree has a wildcard (e.g., '*.*' means include base columns)
+   const hasWildcardInRelations = Object.keys(relationTree).includes('*')
+   // hasExplicitBaseColumns is true if:
+   // 1. Base columns were explicitly requested (either '*' or specific columns), OR
+   // 2. A wildcard was used in relations (e.g., '*.*' means include base columns)
+   // It's false only when a specific relation is requested without base columns (e.g., 'posts.*')
+   const hasExplicitBaseColumns = baseColumns.some(col => col !== basePk) || hasWildcardInRelations
+
+   const columnsToSelect = baseColumns.filter(col => col !== '*').length > 0
+      ? baseColumns.filter(col => col !== '*')
+      : allColumns
 
    for (const col of columnsToSelect) {
       selects.push(`${baseAlias}.${col} as ${baseAlias}_${col}`)
    }
 
-   if (!baseColumns.includes(basePk)) {
+   if (!baseColumns.includes(basePk) && !columnsToSelect.includes(basePk)) {
       selects.push(`${baseAlias}.${basePk} as ${baseAlias}_${basePk}`)
    }
 
-   if (Object.keys(relationTree).length > 0) {
-      buildJoinsAndSelects(qb, schema, tableName, baseAlias, relationTree, baseAlias, selects)
+   if (Object.keys(finalRelationTree).length > 0) {
+      buildJoinsAndSelects(qb, schema, tableName, baseAlias, finalRelationTree, baseAlias, selects, tableName)
    }
 
    qb.select(selects)
@@ -350,8 +449,8 @@ async function findWithRelations<S extends Schema, N extends TableNames<S>, C ex
 
    const flatRows = await qb
 
-   if (Object.keys(relationTree).length > 0) {
-      return reconstructNestedObjects(schema, tableName, flatRows, relationTree, baseAlias, knex.client.config.client) as QueryResult<S, N, C>
+   if (Object.keys(finalRelationTree).length > 0) {
+      return reconstructNestedObjects(schema, tableName, flatRows, finalRelationTree, baseAlias, knex.client.config.client, hasExplicitBaseColumns, requestedBaseColumns, hasWildcardInBase) as QueryResult<S, N, C>
    }
 
    const results: Record<string, unknown>[] = []
@@ -380,7 +479,7 @@ function isParamsObject(value: unknown): value is Record<string, unknown> {
 /**
  * Find one record by primary key or filter query.
  */
-export function findOne<S extends Schema, N extends TableNames<S>, C extends FieldName<S, N>[], P extends FindQueryParams<S, N, C>>(
+export function findOne<S extends Schema, N extends TableNames<S>, C extends FieldName<S, N>[], P extends FindParams<S, N, C>>(
    knex: Knex,
    schema: S,
    tableName: N,
