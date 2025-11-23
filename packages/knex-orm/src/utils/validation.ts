@@ -4,31 +4,11 @@ import type { FieldName } from '@/types/fields'
 import type { FindQueryParams } from '@/types/query'
 import type { Schema, TableItemInput, TableNames } from '@/types/schema'
 import z from 'zod'
+import { globalCache } from './cache'
 import { getCollection, getColumns, getRelations } from './collections'
 import { getDataTypeOperators, getDataTypeValidator } from './data-types'
 
-const filterSchemaCache = new Map<string, z.ZodTypeAny>()
-const payloadSchemaCache = new Map<string, z.ZodTypeAny>()
-const columnPathCache = new Map<string, string[]>()
-
-/**
- * Operator value factories.
- */
-const OPERATOR_VALUE_FACTORIES: Partial<Record<Operator, (base: z.ZodTypeAny) => z.ZodTypeAny>> = {
-   $eq: base => base,
-   $neq: base => base,
-   $gt: base => base,
-   $gte: base => base,
-   $lt: base => base,
-   $lte: base => base,
-   $contains: base => base,
-   $ncontains: base => base,
-   $startsWith: base => base,
-   $nstartsWith: base => base,
-   $endsWith: base => base,
-   $nendsWith: base => base,
-   $like: base => base,
-   $nlike: base => base,
+const SPECIAL_OPERATOR_FACTORIES: Partial<Record<Operator, (base: z.ZodTypeAny) => z.ZodTypeAny>> = {
    $in: base => z.array(base),
    $nin: base => z.array(base),
    $between: base => z.tuple([base, base]),
@@ -38,7 +18,7 @@ const OPERATOR_VALUE_FACTORIES: Partial<Record<Operator, (base: z.ZodTypeAny) =>
 }
 
 /**
- * Create a column value schema.
+ * Create Zod schema for a column value based on its data type.
  */
 function createColumnValueSchema(tableName: string, columnName: string, definition: ColumnDefinition) {
    let schema = getDataTypeValidator(definition.type)({
@@ -56,17 +36,17 @@ function createColumnValueSchema(tableName: string, columnName: string, definiti
 }
 
 /**
- * Create a field filter schema.
+ * Create Zod schema for field filters (direct value or operator object).
  */
 function createFieldFilterSchema(tableName: string, columnName: string, definition: ColumnDefinition) {
    const base = createColumnValueSchema(tableName, columnName, definition)
    const operators = getDataTypeOperators(definition.type)
 
-   const operatorShape = operators.reduce<Record<string, z.ZodTypeAny>>((shape, operator) => {
-      const factory = OPERATOR_VALUE_FACTORIES[operator]
-      shape[operator] = (factory ? factory(base) : z.any()).optional()
-      return shape
-   }, {})
+   const operatorShape: Record<string, z.ZodTypeAny> = {}
+   for (const operator of operators) {
+      const factory = SPECIAL_OPERATOR_FACTORIES[operator]
+      operatorShape[operator] = (factory ? factory(base) : base).optional()
+   }
 
    const operatorObject = z.object(operatorShape).strict().refine(
       value => Object.keys(value).length > 0,
@@ -77,59 +57,50 @@ function createFieldFilterSchema(tableName: string, columnName: string, definiti
 }
 
 /**
- * Get a where validation schema.
+ * Get Zod validation schema for filter queries (WHERE clauses).
+ * Results are cached for performance.
  */
-export function getWhereValidation<S extends Schema, N extends TableNames<S>>(schema: S, tableName: N, stack: string[] = []): z.ZodTypeAny {
+export function getWhereValidation<S extends Schema, N extends TableNames<S>>(
+   schema: S,
+   tableName: N,
+   stack: string[] = [],
+): z.ZodTypeAny {
    const cacheKey = `filter:${tableName}`
-   const selfRef = z.lazy(() => filterSchemaCache.get(cacheKey) ?? z.object({}).strict())
 
-   if (filterSchemaCache.has(cacheKey)) {
-      return filterSchemaCache.get(cacheKey)!
-   }
+   const selfRef = z.lazy(() => globalCache.useCache('filterSchema', cacheKey, () => z.object({}).strict()))
+   if (stack.includes(cacheKey)) return selfRef
 
-   if (stack.includes(cacheKey)) {
-      return selfRef
-   }
+   return globalCache.useCache('filterSchema', cacheKey, () => {
+      const nextStack = [...stack, cacheKey]
+      const collection = getCollection(schema, tableName)
+      const columns = getColumns(schema, collection, { includeBelongsTo: true })
+      const relations = getRelations(collection)
 
-   const nextStack = [...stack, cacheKey]
-   const collection = getCollection(schema, tableName)
-   const columns = getColumns(schema, collection, {
-      includeBelongsTo: true,
+      const shape: Record<string, z.ZodTypeAny> = {
+         $and: z.array(selfRef).optional(),
+         $or: z.array(selfRef).optional(),
+      }
+
+      for (const [columnName, definition] of Object.entries(columns)) {
+         shape[columnName] = createFieldFilterSchema(tableName, columnName, definition).optional()
+      }
+
+      for (const [relationName, definition] of Object.entries(relations)) {
+         shape[relationName] = (definition.table === tableName
+            ? selfRef
+            : z.lazy(() => getWhereValidation(schema, definition.table, nextStack))
+         ).optional()
+      }
+
+      return z.object(shape).strict()
    })
-   const relations = getRelations(collection)
-
-   const shape: Record<string, z.ZodTypeAny> = {}
-
-   for (const [columnName, definition] of Object.entries(columns)) {
-      shape[columnName] = createFieldFilterSchema(tableName, columnName, definition).optional()
-   }
-
-   for (const [relationName, definition] of Object.entries(relations)) {
-      shape[relationName] = (definition.table === tableName
-         ? selfRef
-         : z.lazy(() => getWhereValidation(schema, definition.table, nextStack))
-      ).optional()
-   }
-
-   const filterSchema = z.object({
-      ...shape,
-      $and: z.array(selfRef).optional(),
-      $or: z.array(selfRef).optional(),
-   }).strict()
-
-   filterSchemaCache.set(cacheKey, filterSchema)
-   return filterSchema
 }
 
 /**
- * Check if a column is required.
+ * Check if a column is required (no nullable, default, auto-increment, or primary key).
  */
-function isColumnRequired(column: ColumnDefinition) {
-   if (column.nullable) return false
-   if (column.default !== undefined) return false
-   if (column.increments) return false
-   if (column.primary) return false
-   return true
+function isColumnRequired(col: ColumnDefinition) {
+   return !col.nullable && col.default === undefined && !col.increments && !col.primary
 }
 
 /**
@@ -144,54 +115,46 @@ export interface PayloadSchemaOptions {
 }
 
 /**
- * Build a payload schema.
+ * Build Zod validation schema for payload data (create/update).
+ * Results are cached for performance.
  */
-function buildPayloadSchema<S extends Schema, N extends TableNames<S>>(schema: S, tableName: N, options: PayloadSchemaOptions = {}, stack: string[] = []): z.ZodTypeAny {
+function buildPayloadSchema<S extends Schema, N extends TableNames<S>>(
+   schema: S,
+   tableName: N,
+   options: PayloadSchemaOptions = {},
+   stack: string[] = [],
+): z.ZodTypeAny {
    const partial = options.partial ?? true
    const cacheKey = `payload:${tableName}:${partial ? 'partial' : 'strict'}`
-   const selfRef = z.lazy(() => payloadSchemaCache.get(cacheKey) ?? z.object({}).strict())
 
-   if (payloadSchemaCache.has(cacheKey)) {
-      return payloadSchemaCache.get(cacheKey)!
-   }
+   const selfRef = z.lazy(() => globalCache.useCache('payloadSchema', cacheKey, () => z.object({}).strict()))
+   if (stack.includes(cacheKey)) return selfRef
 
-   if (stack.includes(cacheKey)) {
-      return selfRef
-   }
+   return globalCache.useCache('payloadSchema', cacheKey, () => {
+      const nextStack = [...stack, cacheKey]
+      const collection = getCollection(schema, tableName)
+      const columns = getColumns(schema, collection, { includeBelongsTo: true })
+      const relations = getRelations(collection)
 
-   const nextStack = [...stack, cacheKey]
-   const collection = getCollection(schema, tableName)
-   const columns = getColumns(schema, collection, {
-      includeBelongsTo: true,
+      const shape: Record<string, z.ZodTypeAny> = {}
+
+      for (const [columnName, definition] of Object.entries(columns)) {
+         const columnSchema = createColumnValueSchema(tableName, columnName, definition)
+         shape[columnName] = (partial || !isColumnRequired(definition))
+            ? columnSchema.optional()
+            : columnSchema
+      }
+
+      for (const [relationName, definition] of Object.entries(relations)) {
+         const relatedSchema = definition.table === tableName
+            ? selfRef
+            : z.lazy(() => buildPayloadSchema(schema, definition.table, options, nextStack))
+
+         shape[relationName] = z.union([relatedSchema, z.array(relatedSchema)]).optional()
+      }
+
+      return z.object(shape).strict()
    })
-   const relations = getRelations(collection)
-
-   const shape: Record<string, z.ZodTypeAny> = {}
-
-   for (const [columnName, definition] of Object.entries(columns)) {
-      const columnSchema = createColumnValueSchema(tableName, columnName, definition)
-      shape[columnName] = partial || !isColumnRequired(definition)
-         ? columnSchema.optional()
-         : columnSchema
-   }
-
-   for (const [relationName, definition] of Object.entries(relations)) {
-      const tableSchema = definition.table === tableName
-         ? selfRef
-         : z.lazy(() => buildPayloadSchema(schema, definition.table, options, nextStack))
-
-      const relationSchema = z.union([
-         tableSchema,
-         z.array(tableSchema),
-      ])
-
-      shape[relationName] = relationSchema.optional()
-   }
-
-   const payloadSchema = z.object(shape).strict()
-
-   payloadSchemaCache.set(cacheKey, payloadSchema)
-   return payloadSchema
 }
 
 /**
@@ -219,16 +182,11 @@ function collectColumnPaths<S extends Schema>(schema: S, tableName: TableNames<S
 }
 
 /**
- * Get column paths.
+ * Get all valid column paths for a table (cached for performance).
  */
 function getColumnPaths<S extends Schema, N extends TableNames<S>>(schema: S, tableName: N) {
    const cacheKey = `columns:${tableName}`
-   if (columnPathCache.has(cacheKey)) {
-      return columnPathCache.get(cacheKey)!
-   }
-   const paths = collectColumnPaths(schema, tableName)
-   columnPathCache.set(cacheKey, paths)
-   return paths
+   return globalCache.useCache('columnPaths', cacheKey, () => collectColumnPaths(schema, tableName))
 }
 
 /**

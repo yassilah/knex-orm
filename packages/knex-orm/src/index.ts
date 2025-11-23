@@ -1,5 +1,6 @@
 export * from './extensions'
 export * from './instance'
+export { globalCache } from './utils/cache'
 export { defineCollection, withDefaults, withId, withTimestamps, withUuid } from './utils/collections'
 export * from './utils/filters'
 export * from './utils/migrations'
