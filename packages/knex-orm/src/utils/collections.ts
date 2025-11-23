@@ -14,21 +14,21 @@ const DEFAULT_FIELD_OPTS = { nullable: true }
 const DEFAULT_BELONGSTO_OPTS = { nullable: true, onDelete: 'CASCADE', onUpdate: 'CASCADE' }
 
 /**
- * Check if field is a column definition (not a relation).
+ * Check if field is a column definition (not a relation)
  */
 export function isColumn(field: FieldDefinition): field is ColumnDefinition {
    return !RELATION_TYPES.has(field.type)
 }
 
 /**
- * Check if field is a relation definition.
+ * Check if field is a relation definition
  */
 export function isRelation(field: FieldDefinition): field is RelationDefinition {
    return RELATION_TYPES.has(field.type)
 }
 
 /**
- * Convert a belongs-to relation definition to a column definition with foreign key reference.
+ * Convert a belongs-to relation definition to a column definition with foreign key reference
  */
 function belongsToColumn(schema: Schema, field: BelongsToRelationDefinition) {
    const referencedField = schema[field.table][field.foreignKey]
@@ -48,8 +48,8 @@ function belongsToColumn(schema: Schema, field: BelongsToRelationDefinition) {
 }
 
 /**
- * Extract all column definitions from a collection.
- * Results are cached for performance when includeBelongsTo is not false.
+ * Extract all column definitions from a collection
+ * Results are cached for performance when includeBelongsTo is not false
  */
 export function getColumns(
    schema: Schema,
@@ -75,8 +75,8 @@ export function getColumns(
 }
 
 /**
- * Extract all relation definitions from a collection.
- * Results are cached for performance when includeBelongsTo is not false.
+ * Extract all relation definitions from a collection
+ * Results are cached for performance when includeBelongsTo is not false
  */
 export function getRelations(
    collection: CollectionDefinition,
@@ -100,8 +100,8 @@ export function getRelations(
 }
 
 /**
- * Get a collection from a schema by table name.
- * Throws an error if the collection doesn't exist.
+ * Get a collection from a schema by table name
+ * Throws an error if the collection doesn't exist
  */
 export function getCollection<S extends Schema, N extends TableNames<S>>(schema: S, tableName: N) {
    const collection = schema[tableName]
@@ -114,10 +114,10 @@ export function getCollection<S extends Schema, N extends TableNames<S>>(schema:
 }
 
 /**
- * Get the primary key column name from a collection.
- * Results are cached for performance.
+ * Get the primary key column name from a collection
+ * Results are cached for performance
  */
-export function getPrimaryKey(collection: CollectionDefinition): string {
+export function getPrimaryKey(collection: CollectionDefinition) {
    return globalCache.useCache('primaryKey', collection, () => {
       for (const [key, def] of Object.entries(collection)) {
          if (isColumn(def) && def.primary === true) {
@@ -129,14 +129,14 @@ export function getPrimaryKey(collection: CollectionDefinition): string {
 }
 
 /**
- * Normalize a field definition by applying default values.
+ * Normalize a field definition by applying default values
  */
 export function normalizeField<const F extends FieldDefinition>(field: F) {
    return defu(field, isBelongsTo(field) ? DEFAULT_BELONGSTO_OPTS : DEFAULT_FIELD_OPTS) as unknown as NormalizedFieldDefinition<F>
 }
 
 /**
- * Normalize all fields in a collection definition by applying defaults.
+ * Normalize all fields in a collection definition by applying defaults
  */
 export function normalizeCollection<const C extends CollectionDefinition>(collection: C) {
    const result: Record<string, any> = {}
@@ -147,14 +147,14 @@ export function normalizeCollection<const C extends CollectionDefinition>(collec
 }
 
 /**
- * Define a collection with normalized field definitions.
+ * Define a collection with normalized field definitions
  */
 export function defineCollection<const C extends CollectionDefinition>(input: C) {
    return normalizeCollection(input) as NormalizedCollectionDefinition<C>
 }
 
 /**
- * Add an auto-incremented integer primary key column.
+ * Add an auto-incremented integer primary key column
  */
 export function withId<const C extends CollectionDefinition>(collection: C) {
    return {
@@ -164,7 +164,7 @@ export function withId<const C extends CollectionDefinition>(collection: C) {
 }
 
 /**
- * Add created_at and updated_at timestamp columns.
+ * Add created_at and updated_at timestamp columns
  */
 export function withTimestamps<const C extends CollectionDefinition>(collection: C) {
    return {
@@ -175,7 +175,7 @@ export function withTimestamps<const C extends CollectionDefinition>(collection:
 }
 
 /**
- * Add a UUID primary key column.
+ * Add a UUID primary key column
  */
 export function withUuid<const C extends CollectionDefinition>(collection: C) {
    return {
@@ -185,7 +185,7 @@ export function withUuid<const C extends CollectionDefinition>(collection: C) {
 }
 
 /**
- * Combine withId and withTimestamps.
+ * Combine withId and withTimestamps
  */
 export function withDefaults<const C extends CollectionDefinition>(collection: C) {
    return withTimestamps(withId(collection))

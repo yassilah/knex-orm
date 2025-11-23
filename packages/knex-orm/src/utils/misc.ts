@@ -1,7 +1,7 @@
 import type { Knex } from 'knex'
 
 /**
- * Convert a value to an array.
+ * Convert a value to an array
  */
 export function toArray<T extends Record<string, unknown>>(value: unknown) {
    if (Array.isArray(value)) {
@@ -16,7 +16,7 @@ export function toArray<T extends Record<string, unknown>>(value: unknown) {
 }
 
 /**
- * Check if the client supports returning.
+ * Check if the client supports returning
  */
 export function clientSupportsReturning(knex: Knex) {
    const clientName = knex.client.config.client
@@ -24,7 +24,7 @@ export function clientSupportsReturning(knex: Knex) {
 }
 
 /**
- * Check if a value is not null or undefined.
+ * Check if a value is not null or undefined
  */
 export function isNonNullish<T>(value: T): value is NonNullable<T> {
    return value !== null && value !== undefined

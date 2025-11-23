@@ -1,7 +1,7 @@
 import type { Knex } from 'knex'
 
 /**
- * SQL Operators.
+ * SQL Operators
  */
 export const OPERATORS = {
    $eq: (builder, column, value: unknown) => builder.where(column, '=', value as any),

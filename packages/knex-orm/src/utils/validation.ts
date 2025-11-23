@@ -18,7 +18,7 @@ const SPECIAL_OPERATOR_FACTORIES: Partial<Record<Operator, (base: z.ZodTypeAny) 
 }
 
 /**
- * Create Zod schema for a column value based on its data type.
+ * Create Zod schema for a column value based on its data type
  */
 function createColumnValueSchema(tableName: string, columnName: string, definition: ColumnDefinition) {
    let schema = getDataTypeValidator(definition.type)({
@@ -36,7 +36,7 @@ function createColumnValueSchema(tableName: string, columnName: string, definiti
 }
 
 /**
- * Create Zod schema for field filters (direct value or operator object).
+ * Create Zod schema for field filters (direct value or operator object)
  */
 function createFieldFilterSchema(tableName: string, columnName: string, definition: ColumnDefinition) {
    const base = createColumnValueSchema(tableName, columnName, definition)
@@ -57,14 +57,14 @@ function createFieldFilterSchema(tableName: string, columnName: string, definiti
 }
 
 /**
- * Get Zod validation schema for filter queries (WHERE clauses).
- * Results are cached for performance.
+ * Get Zod validation schema for filter queries (WHERE clauses)
+ * Results are cached for performance
  */
 export function getWhereValidation<S extends Schema, N extends TableNames<S>>(
    schema: S,
    tableName: N,
    stack: string[] = [],
-): z.ZodTypeAny {
+) {
    const cacheKey = `filter:${tableName}`
 
    const selfRef = z.lazy(() => globalCache.useCache('filterSchema', cacheKey, () => z.object({}).strict()))
@@ -97,33 +97,33 @@ export function getWhereValidation<S extends Schema, N extends TableNames<S>>(
 }
 
 /**
- * Check if a column is required (no nullable, default, auto-increment, or primary key).
+ * Check if a column is required (no nullable, default, auto-increment, or primary key)
  */
 function isColumnRequired(col: ColumnDefinition) {
    return !col.nullable && col.default === undefined && !col.increments && !col.primary
 }
 
 /**
- * Payload schema options.
+ * Payload schema options
  */
 export interface PayloadSchemaOptions {
    /**
-    * When true (default), all fields are treated as optional to mirror {@link TableItemInput}.
-    * Set to false to enforce required columns.
+    * When true (default), all fields are treated as optional to mirror {@link TableItemInput}
+    * Set to false to enforce required columns
     */
    partial?: boolean
 }
 
 /**
- * Build Zod validation schema for payload data (create/update).
- * Results are cached for performance.
+ * Build Zod validation schema for payload data (create/update)
+ * Results are cached for performance
  */
 function buildPayloadSchema<S extends Schema, N extends TableNames<S>>(
    schema: S,
    tableName: N,
    options: PayloadSchemaOptions = {},
    stack: string[] = [],
-): z.ZodTypeAny {
+) {
    const partial = options.partial ?? true
    const cacheKey = `payload:${tableName}:${partial ? 'partial' : 'strict'}`
 
@@ -158,7 +158,7 @@ function buildPayloadSchema<S extends Schema, N extends TableNames<S>>(
 }
 
 /**
- * Collect all column paths recursively, including nested relations.
+ * Collect all column paths recursively, including nested relations
  */
 function collectColumnPaths<S extends Schema>(schema: S, tableName: TableNames<S>, prefix = '', stack: string[] = []) {
    const collection = getCollection(schema, tableName)
@@ -182,7 +182,7 @@ function collectColumnPaths<S extends Schema>(schema: S, tableName: TableNames<S
 }
 
 /**
- * Get all valid column paths for a table (cached for performance).
+ * Get all valid column paths for a table (cached for performance)
  */
 function getColumnPaths<S extends Schema, N extends TableNames<S>>(schema: S, tableName: N) {
    const cacheKey = `columns:${tableName}`
@@ -190,7 +190,7 @@ function getColumnPaths<S extends Schema, N extends TableNames<S>>(schema: S, ta
 }
 
 /**
- * Create a column selection schema.
+ * Create a column selection schema
  */
 function createColumnSelectionSchema<S extends Schema, N extends TableNames<S>>(schema: S, tableName: N) {
    const allowedPaths = new Set(getColumnPaths(schema, tableName))
@@ -209,7 +209,7 @@ function createColumnSelectionSchema<S extends Schema, N extends TableNames<S>>(
 }
 
 /**
- * Create an order by schema.
+ * Create an order by schema
  */
 function createOrderBySchema<S extends Schema, N extends TableNames<S>>(schema: S, tableName: N) {
    const allowedPaths = new Set(getColumnPaths(schema, tableName))
@@ -229,7 +229,7 @@ function createOrderBySchema<S extends Schema, N extends TableNames<S>>(schema: 
 }
 
 /**
- * Create a collection name schema.
+ * Create a collection name schema
  */
 export function getCollectionNameSchema<S extends Schema>(schema: S) {
    const collections = Object.keys(schema)
@@ -244,14 +244,14 @@ export function getCollectionNameSchema<S extends Schema>(schema: S) {
 }
 
 /**
- * Validate a collection name.
+ * Validate a collection name
  */
 export function validateCollectionName<S extends Schema>(schema: S, tableName: unknown) {
    return getCollectionNameSchema(schema).parse(tableName)
 }
 
 /**
- * Create a query params schema.
+ * Create a query params schema
  */
 export function getQueryParamsSchema<S extends Schema, N extends TableNames<S>>(schema: S, tableName: N) {
    const columnsSchema = createColumnSelectionSchema(schema, tableName).optional()
@@ -268,21 +268,21 @@ export function getQueryParamsSchema<S extends Schema, N extends TableNames<S>>(
 }
 
 /**
- * Validate query params.
+ * Validate query params
  */
 export function validateQueryParams<S extends Schema, N extends TableNames<S>>(schema: S, tableName: N, params: unknown) {
    return getQueryParamsSchema(schema, tableName).parse(params ?? {})
 }
 
 /**
- * Create a payload schema.
+ * Create a payload schema
  */
 export function getPayloadSchema<S extends Schema, N extends TableNames<S>>(schema: S, tableName: N, options?: PayloadSchemaOptions) {
-   return buildPayloadSchema(schema, tableName, options) as z.ZodType<TableItemInput<S, N>>
+   return buildPayloadSchema(schema, tableName, options) as unknown as z.ZodType<TableItemInput<S, N>>
 }
 
 /**
- * Validate a payload.
+ * Validate a payload
  */
 export function validatePayload<S extends Schema, N extends TableNames<S>>(schema: S, tableName: N, payload: unknown, options?: PayloadSchemaOptions) {
    return getPayloadSchema(schema, tableName, options).parse(payload)

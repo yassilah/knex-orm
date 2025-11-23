@@ -11,7 +11,7 @@ interface ValueTransformer {
 const DRIVER_VALUE_TRANSFORMERS: Record<string, Record<ColumnDefinition['type'], ValueTransformer>> = {}
 
 /**
- * Apply a value transformer to the value.
+ * Apply a value transformer to the value
  */
 function applyTransformer(driver: string, type: ColumnDefinition['type'], phase: 'serialize' | 'deserialize', value: unknown) {
    const fn = DRIVER_VALUE_TRANSFORMERS[driver]?.[type]?.[phase] || DRIVER_VALUE_TRANSFORMERS['*']?.[type]?.[phase]
@@ -19,7 +19,7 @@ function applyTransformer(driver: string, type: ColumnDefinition['type'], phase:
 }
 
 /**
- * Define a value transformer for a driver and a column type.
+ * Define a value transformer for a driver and a column type
  */
 export function defineValueTransformer(driver: string | string[] | '*', type: ColumnDefinition['type'], transformer: ValueTransformer) {
    const drivers = Array.isArray(driver) ? driver : [driver]
@@ -31,21 +31,21 @@ export function defineValueTransformer(driver: string | string[] | '*', type: Co
 }
 
 /**
- * Transform column input value.
+ * Transform column input value
  */
 export function transformInputColumnValue(driver: string, type: ColumnDefinition['type'], value: unknown) {
    return applyTransformer(driver, type, 'serialize', value)
 }
 
 /**
- * Transform column output value.
+ * Transform column output value
  */
 export function transformOutputColumnValue(driver: string, type: ColumnDefinition['type'], value: unknown) {
    return applyTransformer(driver, type, 'deserialize', value)
 }
 
 /**
- * Transform input values for database insertion/update.
+ * Transform input values for database insertion/update
  */
 export function transformInputValue(driver: string, schema: Schema, tableName: string, scalar: Record<string, unknown>) {
    const collection = getCollection(schema, tableName)
@@ -62,7 +62,7 @@ export function transformInputValue(driver: string, schema: Schema, tableName: s
 }
 
 /**
- * Normalize a record from the database by transforming column values.
+ * Normalize a record from the database by transforming column values
  */
 export function transformOutputValue(schema: Schema, tableName: string, record?: unknown, driver?: string) {
    if (!isValidRecord(record) || !driver) return record
@@ -80,7 +80,7 @@ export function transformOutputValue(schema: Schema, tableName: string, record?:
 }
 
 /**
- * Attach a row normalizer to the query builder.
+ * Attach a row normalizer to the query builder
  */
 export function attachRowNormalizer<S extends Schema, N extends TableNames<S>>(qb: Knex.QueryBuilder, schema: S, tableName: N) {
    qb.on('query-response', (response: unknown) => {
@@ -95,7 +95,7 @@ export function attachRowNormalizer<S extends Schema, N extends TableNames<S>>(q
 }
 
 /**
- * Check if a value is a valid record object.
+ * Check if a value is a valid record object
  */
 function isValidRecord(record: unknown): record is Record<string, unknown> {
    return record != null && typeof record === 'object'

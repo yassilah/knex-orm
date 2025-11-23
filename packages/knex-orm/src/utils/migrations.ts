@@ -33,7 +33,7 @@ export interface MigrationResult {
 }
 
 /**
- * Apply a column definition to a table builder.
+ * Apply a column definition to a table builder
  */
 function applyColumnDefinition(knex: Knex, builder: Knex.CreateTableBuilder | Knex.AlterTableBuilder, tableName: string, columnName: string, definition: ColumnDefinitionWithReferences) {
    const column = getDataTypeCreator(definition.type)({
@@ -66,14 +66,14 @@ function applyColumnDefinition(knex: Knex, builder: Knex.CreateTableBuilder | Kn
 }
 
 /**
- * Check if a value is a Knex function helper.
+ * Check if a value is a Knex function helper
  */
 function isFunctionHelper(knex: Knex, value: unknown): value is keyof Knex.FunctionHelper {
    return typeof value === 'string' && value in knex.fn
 }
 
 /**
- * Get the default value, resolving function helpers if needed.
+ * Get the default value, resolving function helpers if needed
  */
 function getDefaultValue<T>(knex: Knex, value: T) {
    if (typeof value === 'string') {
@@ -86,19 +86,19 @@ function getDefaultValue<T>(knex: Knex, value: T) {
 }
 
 /**
- * Get column information for a table, returning undefined on error.
+ * Get column information for a table, returning undefined on error
  */
 async function getColumnInfo(knex: Knex, table: string) {
    try {
       return await knex(table).columnInfo()
    }
    catch {
-      return undefined
+
    }
 }
 
 /**
- * Compare the schema with the current database state and return the operations needed to sync them.
+ * Compare the schema with the current database state and return the operations needed to sync them
  */
 export async function diffSchema(
    knex: Knex,
@@ -151,7 +151,7 @@ export async function diffSchema(
 }
 
 /**
- * Create a table with all its columns.
+ * Create a table with all its columns
  */
 async function createTable(knex: Knex, operation: SchemaOperation & { type: 'createTable' }, schema?: Schema) {
    if (!schema) {
@@ -182,7 +182,7 @@ async function createTable(knex: Knex, operation: SchemaOperation & { type: 'cre
 }
 
 /**
- * Alter a table.
+ * Alter a table
  */
 async function alterTable(knex: Knex, operation: SchemaOperation & { type: 'addColumn' | 'alterColumn' }) {
    return knex.schema.alterTable(operation.table, (table) => {
@@ -191,7 +191,7 @@ async function alterTable(knex: Knex, operation: SchemaOperation & { type: 'addC
 }
 
 /**
- * Apply a single migration operation to the database.
+ * Apply a single migration operation to the database
  */
 export function applyOperation(knex: Knex, operation: SchemaOperation, schema?: Schema) {
    switch (operation.type) {
@@ -208,22 +208,22 @@ export function applyOperation(knex: Knex, operation: SchemaOperation, schema?: 
 }
 
 /**
- * Plan migration operations by comparing the schema with the current database state.
+ * Plan migration operations by comparing the schema with the current database state
  */
 export async function planMigrations(
    knex: Knex,
    schema: Schema,
-): Promise<SchemaOperation[]> {
+) {
    return diffSchema(knex, schema)
 }
 
 /**
- * Execute migration operations to bring the database in sync with the schema.
+ * Execute migration operations to bring the database in sync with the schema
  */
 export async function migrateSchema(
    knex: Knex,
    schema: Schema,
-): Promise<MigrationResult> {
+) {
    const operations = await diffSchema(knex, schema)
    for (const operation of operations) {
       await applyOperation(knex, operation, schema)

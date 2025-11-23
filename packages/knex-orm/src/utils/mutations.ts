@@ -14,7 +14,9 @@ interface RelationPayload {
    value: unknown
 }
 
-/** Partition record into scalar values and relations */
+/**
+ * Partition record into scalar values and relations
+ */
 export function partitionRecord(collection: CollectionDefinition, record: Record<string, unknown>) {
    const scalar: Record<string, unknown> = {}
    const relations: RelationPayload[] = []
@@ -37,7 +39,7 @@ export function partitionRecord(collection: CollectionDefinition, record: Record
 /**
  * Upsert a table record (create if not exists, update if exists).
  */
-export async function upserttableRecord<S extends Schema, N extends TableNames<S>>(knex: Knex, schema: S, tableName: N, payload: TableItemInput<S, N>, options: MutationOptions, tablePk: string): Promise<TableItem<S, N>> {
+export async function upsertTableRecord<S extends Schema, N extends TableNames<S>>(knex: Knex, schema: S, tableName: N, payload: TableItemInput<S, N>, options: MutationOptions, tablePk: string): Promise<TableItem<S, N>> {
    const payloadRecord = payload as Record<string, unknown>
    const primaryKeyValue = payloadRecord[tablePk] as TablePrimaryKeyValue<S, N> | undefined
 
@@ -58,7 +60,9 @@ export async function upserttableRecord<S extends Schema, N extends TableNames<S
    return createOne(knex, schema, tableName, payload, options)
 }
 
-/** Handle belongs-to relations (upsert related records and set FK) */
+/**
+ * Handle belongs-to relations (upsert related records and set FK)
+ */
 export async function handleBelongsToRelations<S extends Schema>(
    knex: Knex,
    schema: S,
@@ -67,29 +71,28 @@ export async function handleBelongsToRelations<S extends Schema>(
    options: MutationOptions,
 ) {
    for (const relation of relations) {
-      // Skip non-belongs-to or null values
       if (relation.definition.type !== 'belongs-to' || !relation.value) continue
 
-      // If value is scalar (ID), use it directly as FK
       const valueType = typeof relation.value
       if (valueType === 'number' || valueType === 'string') {
          scalar[relation.name] = relation.value
          continue
       }
 
-      // Otherwise upsert the related record
       const tableName = relation.definition.table
       const tableMeta = schema[tableName]
       const [payload] = toArray(relation.value) as TableItemInput<S, TableNames<S>>[]
       if (!payload) continue
 
       const tablePk = getPrimaryKey(tableMeta)
-      const record = await upserttableRecord(knex, schema, tableName, payload, options, tablePk)
+      const record = await upsertTableRecord(knex, schema, tableName, payload, options, tablePk)
       scalar[relation.name] = (record as Record<string, unknown>)[tablePk]
    }
 }
 
-/** Handle child relations on create (has-one, has-many, many-to-many) */
+/**
+ * Handle child relations on create (has-one, has-many, many-to-many)
+ */
 export async function handleChildRelationsOnCreate<S extends Schema>(
    knex: Knex,
    schema: S,
@@ -103,13 +106,11 @@ export async function handleChildRelationsOnCreate<S extends Schema>(
    if (parentPkValue === undefined) return
 
    for (const relation of relations) {
-      // Skip belongs-to (already handled) or null values
       if (relation.definition.type === 'belongs-to' || !relation.value) continue
 
       const tableName = relation.definition.table
       const payloads = toArray(relation.value) as TableItemInput<S, TableNames<S>>[]
 
-      // Many-to-many: upsert related records + create junction rows
       if (isManyToMany(relation.definition)) {
          const { through } = relation.definition
          if (!through) continue
@@ -117,12 +118,12 @@ export async function handleChildRelationsOnCreate<S extends Schema>(
          const tableMeta = schema[tableName]
          const tablePk = getPrimaryKey(tableMeta)
 
-         // Batch upsert all related records
          const related = await Promise.all(
-            payloads.map(payload => upserttableRecord(knex, schema, tableName, payload, options, tablePk)),
+            payloads.map((payload) => {
+               return upsertTableRecord(knex, schema, tableName, payload, options, tablePk)
+            }),
          )
 
-         // Create junction rows
          const junctionRows = related
             .map((record) => {
                const fkValue = record[tablePk as keyof typeof record]
@@ -138,7 +139,6 @@ export async function handleChildRelationsOnCreate<S extends Schema>(
          continue
       }
 
-      // Has-one/Has-many: create child records with FK set
       for (const payload of payloads) {
          const foreignKey = relation.definition.foreignKey as keyof TableItem<S, TableNames<S>>
          payload[foreignKey] = parentPkValue as any
@@ -147,7 +147,9 @@ export async function handleChildRelationsOnCreate<S extends Schema>(
    }
 }
 
-/** Handle child relations on update (replace/upsert child records) */
+/**
+ * Handle child relations on update (replace/upsert child records)
+ */
 export async function handleChildRelationsOnUpdate<S extends Schema>(
    knex: Knex,
    schema: S,
@@ -168,21 +170,19 @@ export async function handleChildRelationsOnUpdate<S extends Schema>(
       const tablePk = getPrimaryKey(tableMeta)
       const payloads = toArray(relation.value) as TableItemInput<S, TableNames<S>>[]
 
-      // Many-to-many: clear existing + recreate junction rows
       if (isManyToMany(relation.definition)) {
          const { through } = relation.definition
          if (!through) continue
 
-         // Clear existing junction rows
          const filters = { [through.sourceFk]: { $eq: parentPkValue } } as unknown as FilterQuery<S, TableNames<S>>
          await remove(knex, schema, through.table, filters, options)
 
-         // Batch upsert related records
          const related = await Promise.all(
-            payloads.map(payload => upserttableRecord(knex, schema, tableName, payload, options, tablePk)),
+            payloads.map((payload) => {
+               return upsertTableRecord(knex, schema, tableName, payload, options, tablePk)
+            }),
          )
 
-         // Create new junction rows
          const junctionRows = related
             .map((record) => {
                const fkValue = record[tablePk as keyof typeof record]
@@ -198,13 +198,11 @@ export async function handleChildRelationsOnUpdate<S extends Schema>(
          continue
       }
 
-      // Has-one/Has-many: upsert each child record
       const foreignKey = relation.definition.foreignKey as keyof TableItem<S, TableNames<S>>
       for (const payload of payloads) {
          payload[foreignKey] = parentPkValue as any
          const payloadRecord = payload as Record<string, unknown>
 
-         // Update if has PK, otherwise create
          if (payloadRecord[tablePk] !== undefined) {
             const filters = { [tablePk]: { $eq: payloadRecord[tablePk] } } as unknown as FilterQuery<S, TableNames<S>>
             await updateOne(knex, schema, tableName, filters, payload, options)

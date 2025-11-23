@@ -2,7 +2,7 @@ import type { Knex } from 'knex'
 import type { MutationOptions } from '@/types/orm'
 
 /**
- * Run a transaction and return the result.
+ * Run a transaction and return the result
  */
 export async function runInTransaction<R>(
    knex: Knex,
