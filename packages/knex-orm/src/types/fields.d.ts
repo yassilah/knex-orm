@@ -1,5 +1,6 @@
 import type { Knex } from 'knex'
 import type { ColumnDefinition, TableColumnNames } from './columns'
+import type { GenerateNestedWildcards } from './helpers'
 import type { RelatedFieldName, RelationDefinition } from './relations'
 import type { Schema, TableNames } from './schema'
 
@@ -12,5 +13,5 @@ export type FieldDefinition = ColumnDefinition | RelationDefinition
 
 export type FieldName<S extends Schema, T extends TableNames<S>, Deep = true, RootTable = T, Placeholder = true>
    = | TableColumnNames<S, T>
-      | (Placeholder extends true ? `*` : never)
+      | (Placeholder extends true ? Deep extends true ? GenerateNestedWildcards<S, T, RootTable> : '*' : never)
       | (Deep extends true ? RelatedFieldName<S, T, RootTable, Placeholder> : never)

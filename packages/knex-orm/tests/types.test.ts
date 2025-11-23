@@ -66,12 +66,17 @@ describe('type tests', () => {
       it('should have the right nested columns', () => {
          expectTypeOf<FieldName<typeof schema, 'users'>>().toEqualTypeOf<
             | '*'
+            | '*.*'
+            | '*.*.*'
+            | '*.*.*.*'
+            | '*.*.*.*.*'
             | 'id'
             | 'email'
             | 'status'
             | 'created_at'
             | 'updated_at'
             | 'posts.*'
+            | 'posts.*.*'
             | 'posts.id'
             | 'posts.title'
             | 'posts.slug'
@@ -84,16 +89,22 @@ describe('type tests', () => {
             | 'posts.tags.created_at'
             | 'posts.tags.updated_at'
             | 'roles.*'
+            | 'roles.*.*'
+            | 'roles.*.*.*'
+            | 'roles.*.*.*.*'
             | 'roles.id'
             | 'roles.name'
             | 'roles.created_at'
             | 'roles.updated_at'
             | 'roles.policies.*'
+            | 'roles.policies.*.*'
+            | 'roles.policies.*.*.*'
             | 'roles.policies.id'
             | 'roles.policies.name'
             | 'roles.policies.created_at'
             | 'roles.policies.updated_at'
             | 'roles.policies.permissions.*'
+            | 'roles.policies.permissions.*.*'
             | 'roles.policies.permissions.action'
             | 'roles.policies.permissions.collection'
             | 'roles.policies.permissions.collection.*'
@@ -185,6 +196,41 @@ describe('type tests', () => {
                status: string | null
                created_at: string | Date
                updated_at: string | Date
+            } | null
+         } | undefined>()
+      })
+
+      it('should return the correct type for nested relations with *.*', () => {
+         expectTypeOf<QueryResultItem<typeof schema, 'posts', ['id', 'title', 'author.*.*']>>().toEqualTypeOf<{
+            id: number
+            title: string
+            author: {
+               id: number
+               email: string
+               status: string | null
+               created_at: string | Date
+               updated_at: string | Date
+               profile: {
+                  id: number
+                  display_name: string
+                  user: number | null
+                  created_at: string | Date
+                  updated_at: string | Date
+               } | null
+               roles: {
+                  id: number
+                  name: string
+                  created_at: string | Date
+                  updated_at: string | Date
+               }[]
+               posts: {
+                  id: number
+                  title: string
+                  slug: string
+                  author: number | null
+                  created_at: string | Date
+                  updated_at: string | Date
+               }[]
             } | null
          } | undefined>()
       })

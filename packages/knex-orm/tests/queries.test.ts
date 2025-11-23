@@ -346,6 +346,178 @@ testAllDrivers('comprehensive instance methods tests (%s)', (driver) => {
             }],
          })
       })
+
+      it('should support using wildcards in column selections', async () => {
+         const tag = {
+            name: 'Tag 1',
+         }
+         const post = {
+            title: 'Post 1',
+            slug: 'post-1',
+            tags: [tag],
+         }
+
+         const collection = {
+            name: 'users',
+         }
+
+         const permission = {
+            name: 'read-users',
+            collection,
+         }
+
+         const policy = {
+            name: 'manage-users',
+            permissions: [permission],
+         }
+
+         const role = {
+            name: 'admin',
+            policies: [policy],
+         }
+
+         const user = {
+            email: 'user@example.com',
+            status: 'active',
+            posts: [post],
+            roles: [role],
+         }
+
+         await orm.createOne('users', user)
+
+         const depth1 = await orm.findOne('users', 1, {
+            columns: ['*'],
+         })
+
+         expect(depth1).toMatchObject({
+            id: 1,
+            email: 'user@example.com',
+            status: 'active',
+            created_at: expect.any(Date),
+            updated_at: expect.any(Date),
+            posts: expect.any(Array),
+            roles: expect.any(Array),
+         })
+
+         const depth2 = await orm.findOne('users', 1, {
+            columns: ['*.*'],
+         })
+
+         expect(depth2).toMatchObject({
+            id: 1,
+            email: 'user@example.com',
+            status: 'active',
+            created_at: expect.any(Date),
+            updated_at: expect.any(Date),
+            posts: expect.arrayContaining([{
+               title: post.title,
+               slug: post.slug,
+            }]),
+            roles: expect.arrayContaining([{
+               name: role.name,
+            }]),
+         })
+
+         const depth3 = await orm.findOne('users', 1, {
+            columns: ['*.*.*'],
+         })
+
+         expect(depth3).toMatchObject({
+            id: 1,
+            email: 'user@example.com',
+            status: 'active',
+            posts: expect.arrayContaining([{
+               title: post.title,
+               slug: post.slug,
+               tags: expect.arrayContaining([{
+                  name: tag.name,
+               }]),
+            }]),
+            roles: expect.arrayContaining([{
+               name: role.name,
+               policies: expect.arrayContaining([{
+                  name: policy.name,
+               }]),
+            }]),
+         })
+
+         const depth4 = await orm.findOne('users', 1, {
+            columns: ['*.*.*.*'],
+         })
+
+         expect(depth4).toMatchObject({
+            id: 1,
+            email: 'user@example.com',
+            status: 'active',
+            posts: expect.arrayContaining([{
+               title: post.title,
+               slug: post.slug,
+               tags: expect.arrayContaining([{
+                  name: tag.name,
+               }]),
+            }]),
+            roles: expect.arrayContaining([{
+               name: role.name,
+               policies: expect.arrayContaining([{
+                  name: policy.name,
+                  permissions: expect.arrayContaining([{
+                     name: permission.name,
+                  }]),
+               }]),
+            }]),
+         })
+
+         const depth5 = await orm.findOne('users', 1, {
+            columns: ['*.*.*.*.*'],
+         })
+
+         expect(depth5).toMatchObject({
+            id: 1,
+            email: 'user@example.com',
+            status: 'active',
+            posts: expect.arrayContaining([{
+               title: post.title,
+               slug: post.slug,
+               tags: expect.arrayContaining([{
+                  name: tag.name,
+               }]),
+            }]),
+            roles: expect.arrayContaining([{
+               name: role.name,
+               policies: expect.arrayContaining([{
+                  name: policy.name,
+                  permissions: expect.arrayContaining([{
+                     name: permission.name,
+                     collection: expect.objectContaining({
+                        name: collection.name,
+                     }),
+                  }]),
+               }]),
+            }]),
+         })
+
+         const postsDepth1 = await orm.findOne('users', 1, {
+            columns: ['posts.*'],
+         })
+
+         expect(postsDepth1).toMatchObject({
+            posts: expect.arrayContaining([{
+               title: post.title,
+               slug: post.slug,
+            }]),
+         })
+
+         const postsDepth2 = await orm.findOne('users', 1, {
+            columns: ['posts.*.*'],
+         })
+
+         expect(postsDepth2).toMatchObject({
+            posts: expect.arrayContaining([{
+               title: post.title,
+               slug: post.slug,
+            }]),
+         })
+      })
    })
 
    describe('findOne', () => {
