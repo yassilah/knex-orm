@@ -1,6 +1,6 @@
 /* eslint-disable ts/no-empty-object-type */
 import type { NormalizedCollectionDefinition } from './collection'
-import type { InferColumnType, TableColumn, TableColumnNames } from './columns'
+import type { ColumnDefinition, InferColumnType, TableColumnNames } from './columns'
 import type { FieldDefinition } from './fields'
 import type { DeepPartial, Prettify } from './helpers'
 import type { BelongsToRelationDefinition, InferRelationType, RelationForeignKeyColumn, TableRelation, TableRelationNames } from './relations'
@@ -28,12 +28,12 @@ export type TableItemInput<S extends Schema, N extends TableNames<S>> = Prettify
 
 /** Extract primary key column name */
 export type TablePrimaryKeyName<S extends Schema, N extends TableNames<S>>
-   = { [K in TableColumnNames<S, N>]: TableColumn<S, N, K>['primary'] extends true ? K : never }[TableColumnNames<S, N>]
+   = { [K in TableColumnNames<S, N, false>]: S[N][K] extends ColumnDefinition ? S[N][K]['primary'] extends true ? K : never : never }[TableColumnNames<S, N, false>]
 
 /** Infer primary key value type */
 export type TablePrimaryKeyValue<S extends Schema, N extends TableNames<S>>
-   = TablePrimaryKeyName<S, N> extends infer PK extends TableColumnNames<S, N>
-      ? InferColumnType<TableColumn<S, N, PK>>
+   = TablePrimaryKeyName<S, N> extends infer PK extends TableColumnNames<S, N, false>
+      ? S[N][PK] extends ColumnDefinition ? InferColumnType<S[N][PK]> : never
       : never
 
 export type NormalizedSchemaDefinition<S extends Schema> = Prettify<{

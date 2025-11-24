@@ -48,7 +48,7 @@ function builder(knex: Knex, tableName: string, trx?: Knex.Transaction) {
 /**
  * Extract base columns (non-nested paths only)
  */
-function extractSelectableColumns(columns?: readonly string[]) {
+function extractSelectableColumns(columns?: string[]) {
    if (!columns?.length) return undefined
    const selectable: string[] = []
    const seen = new Set<string>()
@@ -66,7 +66,7 @@ function extractSelectableColumns(columns?: readonly string[]) {
 /**
  * Check if any columns contain nested relation paths (dot notation)
  */
-function hasNestedColumns(columns?: readonly string[]) {
+function hasNestedColumns(columns?: string[]) {
    return columns?.some(col => col?.includes('.')) ?? false
 }
 
@@ -511,13 +511,13 @@ export function find<S extends Schema, N extends TableNames<S>, C extends FieldN
    const { trx, ...rest } = (params ?? {}) as P
    const { columns, where, orderBy, limit, offset } = rest
 
-   if (hasNestedColumns(columns as readonly string[] | undefined) || (columns && Array.from(columns as readonly string[]).includes('*'))) {
+   if (hasNestedColumns(columns) || columns?.includes('*' as FieldName<S, N>)) {
       return findWithRelations<S, N, C>(knex, schema, tableName, params)
    }
 
    const qb = builder(knex, tableName, trx)
 
-   const selectableColumns = extractSelectableColumns(columns as readonly string[] | undefined)
+   const selectableColumns = extractSelectableColumns(columns)
    qb.select(selectableColumns || '*')
    attachRowNormalizer(qb, schema, tableName)
    applyFilters(qb, knex, schema, tableName, where)

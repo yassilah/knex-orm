@@ -1,10 +1,8 @@
-import type { InferColumnType } from './columns'
+import type { ColumnDefinition, InferColumnType } from './columns'
 import type { BaseFieldDefinition, FieldName } from './fields'
 import type { Schema, TableItem, TableNames } from './schema'
 
-type RelationKind = 'has-one' | 'has-many' | 'belongs-to' | 'many-to-many'
-
-type RelationAction = 'CASCADE' | 'RESTRICT' | 'NO ACTION' | 'SET NULL' | 'SET DEFAULT'
+export type RelationAction = 'CASCADE' | 'RESTRICT' | 'NO ACTION' | 'SET NULL' | 'SET DEFAULT'
 
 interface BaseRelationDefinition extends BaseFieldDefinition {
    table: string
@@ -47,7 +45,7 @@ export type TableRelation<S extends Schema, T extends TableNames<S>, K extends T
 /** Recursively resolve foreign key column through relations */
 export type RelationForeignKeyColumn<S extends Schema, T extends RelationDefinition>
    = S[T['table']][T['foreignKey']] extends infer U
-      ? U extends RelationDefinition ? RelationForeignKeyColumn<S, U> : U
+      ? U extends RelationDefinition ? RelationForeignKeyColumn<S, U> : U extends ColumnDefinition ? U : never
       : never
 
 /** Infer relation type based on relation kind */
@@ -61,15 +59,19 @@ export type InferRelationType<S extends Schema, T extends RelationDefinition>
       : never
 
 /** Generate nested field names for relations (e.g., "posts.title") */
-export type RelatedFieldName<S extends Schema, T extends TableNames<S>, RootTable = T, Placeholder = true>
-   = TableRelationNames<S, T> extends infer Names
-      ? { [K in Names]: TableRelation<S, T, K> extends infer TR
-            ? TR['table'] extends RootTable
-               ? never
-               : `${K}.${FieldName<S, TR['table'], true, T, Placeholder>}`
-                  | (TR extends { type: 'has-one' | 'belongs-to' } ? K : never)
+export type RelatedFieldName<S extends Schema, T extends TableNames<S>, RootTable extends TableNames<S> = T, Placeholder = true>
+   = TableRelationNames<S, T> extends infer Names extends string
+      ? Names extends TableRelationNames<S, T>
+         ? TableRelation<S, T, Names> extends infer TR
+            ? TR extends RelationDefinition
+               ? TR['table'] extends RootTable
+                  ? never
+                  : TR['table'] extends TableNames<S>
+                     ? `${Names}.${FieldName<S, TR['table'], true, T, Placeholder>}` | (TR extends { type: 'has-one' | 'belongs-to' } ? Names : never)
+                     : never
+               : never
             : never
-         }[Names]
+         : never
       : never
 
 /** Extract table name from relation */

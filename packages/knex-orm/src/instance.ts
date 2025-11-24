@@ -1,17 +1,18 @@
 import type { Knex } from 'knex'
-import type { FieldName } from './types/fields'
-import type { MutationOptions } from './types/orm'
-import type { FilterQuery, FindQueryParams, QueryResultItem } from './types/query'
-import type { CollectionDefinition, Schema, TableItemInput, TableNames, TablePrimaryKeyValue } from './types/schema'
+import type { FieldName } from '@/types/fields'
+import type { MutationOptions } from '@/types/orm'
+import type { FilterQuery, FindQueryParams, QueryResult, QueryResultItem } from '@/types/query'
+import type { Schema, TableItem, TableItemInput, TableNames, TablePrimaryKeyValue } from '@/types/schema'
+import type { MigrationResult, SchemaOperation } from '@/utils/migrations'
 import { knex } from 'knex'
-import { installDefaultExtensions } from './extensions'
-import { migrateSchema, planMigrations } from './utils/migrations'
-import * as queries from './utils/queries'
+import { installDefaultExtensions } from '@/extensions'
+import { planMigrations as _planMigrations, migrateSchema } from '@/utils/migrations'
+import * as queries from '@/utils/queries'
 
 /**
  * Create a new instance of the ORM.
  */
-export function createInstance<S extends Schema>(schema: S, knexConfig: Knex.Config, defaultExtensions = true) {
+export function createInstance<S extends Schema>(schema: S, knexConfig: Knex.Config, defaultExtensions = true): Instance<S> {
    const knexInstance = knex(knexConfig)
    return createInstanceWithKnex(schema, knexInstance, defaultExtensions)
 }
@@ -19,7 +20,7 @@ export function createInstance<S extends Schema>(schema: S, knexConfig: Knex.Con
 /**
  * Create a new instance of the ORM with a pre-configured Knex instance.
  */
-export function createInstanceWithKnex<S extends Schema>(schema: S, knexInstance: Knex, defaultExtensions = true) {
+export function createInstanceWithKnex<S extends Schema>(schema: S, knexInstance: Knex, defaultExtensions = true): Instance<S> {
    if (defaultExtensions) {
       installDefaultExtensions()
    }
@@ -28,7 +29,7 @@ export function createInstanceWithKnex<S extends Schema>(schema: S, knexInstance
     * Find records in the specified table.
     */
    function find<N extends TableNames<S>, C extends FieldName<S, N>[] = []>(tableName: N, params?: FindQueryParams<S, N, C>) {
-      return queries.find<S, N, C>(knexInstance, schema, tableName, params)
+      return queries.find<S, N, C>(knexInstance, schema, tableName, params) as Promise<QueryResult<S, N, C>>
    }
 
    /**
@@ -84,6 +85,23 @@ export function createInstanceWithKnex<S extends Schema>(schema: S, knexInstance
       return queries.removeOne(knexInstance, schema, tableName, filter, options)
    }
 
+   /**
+    * Migrate the schema.
+    */
+   function migrate() {
+      return migrateSchema(knexInstance, schema)
+   }
+
+   /**
+    * Plan migrations.
+    */
+   function planMigrations() {
+      return _planMigrations(knexInstance, schema)
+   }
+
+   /**
+    * Return the instance.
+    */
    return {
       knex: knexInstance,
       find,
@@ -94,13 +112,21 @@ export function createInstanceWithKnex<S extends Schema>(schema: S, knexInstance
       updateOne,
       remove,
       removeOne,
-      async migrate() {
-         return migrateSchema(knexInstance, schema)
-      },
-      async planMigrations() {
-         return planMigrations(knexInstance, schema)
-      },
+      migrate,
+      planMigrations,
    }
 }
 
-export type Instance<S extends Record<string, CollectionDefinition>> = ReturnType<typeof createInstance<S>>
+export interface Instance<S extends Schema> {
+   knex: Knex
+   find: <T extends TableNames<S>, C extends FieldName<S, T>[] = []>(tableName: T, params?: FindQueryParams<S, T, C>) => Promise<QueryResult<S, T, C>>
+   findOne: <T extends TableNames<S>, C extends FieldName<S, T>[] = []>(tableName: T, primaryKeyOrParams: TablePrimaryKeyValue<S, T> | FindQueryParams<S, T, C>, params?: Omit<FindQueryParams<S, T, C>, 'where' | 'limit'>) => Promise<QueryResultItem<S, T, C>>
+   create: <T extends TableNames<S>>(tableName: T, records: TableItemInput<S, T>[], options?: MutationOptions) => Promise<TableItem<S, T>[]>
+   createOne: <T extends TableNames<S>>(tableName: T, record: TableItemInput<S, T>, options?: MutationOptions) => Promise<TableItem<S, T>>
+   update: <T extends TableNames<S>>(tableName: T, filter: FilterQuery<S, T>, patch: TableItemInput<S, T>, options?: MutationOptions) => Promise<number>
+   updateOne: <T extends TableNames<S>>(tableName: T, filter: FilterQuery<S, T>, patch: TableItemInput<S, T>, options?: MutationOptions) => Promise<TableItem<S, T> | undefined>
+   remove: <T extends TableNames<S>>(tableName: T, filter: FilterQuery<S, T>, options?: MutationOptions) => Promise<number>
+   removeOne: <T extends TableNames<S>>(tableName: T, filter: FilterQuery<S, T>, options?: MutationOptions) => Promise<TableItem<S, T> | undefined>
+   migrate: () => Promise<MigrationResult>
+   planMigrations: () => Promise<SchemaOperation[]>
+}

@@ -7,13 +7,6 @@ settings:
 importers:
 
   .:
-    dependencies:
-      defu:
-        specifier: ^6.1.4
-        version: 6.1.4
-      ohash:
-        specifier: ^2.0.11
-        version: 2.0.11
     devDependencies:
       '@apenhet/eslint-config':
         specifier: ^2.12.5
@@ -51,18 +44,18 @@ importers:
 
   packages/knex-orm:
     dependencies:
+      defu:
+        specifier: ^6.1.4
+        version: 6.1.4
       knex:
         specifier: ^3.1.0
         version: 3.1.0(better-sqlite3@12.4.1)(mysql2@3.15.3)(mysql@2.18.1)(pg@8.16.3)(sqlite3@5.1.7)
-      mysql2:
-        specifier: ^3.15.3
-        version: 3.15.3
+      ohash:
+        specifier: ^2.0.11
+        version: 2.0.11
       pluralize:
         specifier: ^8.0.0
         version: 8.0.0
-      sqlite3:
-        specifier: ^5.1.7
-        version: 5.1.7
       zod:
         specifier: ^4.1.12
         version: 4.1.12
@@ -70,21 +63,36 @@ importers:
       '@types/pluralize':
         specifier: ^0.0.33
         version: 0.0.33
+      '@yassidev/knex-orm':
+        specifier: workspace:*
+        version: 'link:'
       better-sqlite3:
         specifier: ^12.4.1
         version: 12.4.1
       mysql:
         specifier: ^2.18.1
         version: 2.18.1
+      mysql2:
+        specifier: ^3.15.3
+        version: 3.15.3
       pg:
         specifier: ^8.16.3
         version: 8.16.3
       pg-mem:
         specifier: ^3.0.5
         version: 3.0.5(knex@3.1.0(better-sqlite3@12.4.1)(mysql2@3.15.3)(mysql@2.18.1)(pg@8.16.3)(sqlite3@5.1.7))
+      sqlite3:
+        specifier: ^5.1.7
+        version: 5.1.7
       unbuild:
         specifier: ^3.2.0
         version: 3.6.1(typescript@5.9.3)(vue@3.5.24(typescript@5.9.3))
+
+  playground:
+    dependencies:
+      '@yassidev/knex-orm':
+        specifier: workspace:*
+        version: link:../packages/knex-orm
 
 packages:
 

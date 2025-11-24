@@ -7,8 +7,6 @@ import { getCollection, getColumns, getPrimaryKey, getRelations } from './collec
 import { OPERATORS } from './operators'
 import { isBelongsTo, isHasMany, isHasOne, isManyToMany } from './relations'
 
-export type { FieldFilter, FilterQuery } from '@/types/query'
-
 /**
  * Check if value is a primitive type (not an object filter)
  */
@@ -20,10 +18,10 @@ function isPrimitive(value: unknown): value is string | number | boolean | Date 
  * Apply a field filter to the query builder
  */
 function applyFieldFilter(builder: Knex.QueryBuilder, column: string, value: FieldFilter) {
-   if (isPrimitive(value)) return builder.where(column, value)
+   if (isPrimitive(value)) return builder.where(column, value as never)
    if (Array.isArray(value)) return builder.whereIn(column, value)
 
-   for (const [operator, operand] of Object.entries(value)) {
+   for (const [operator, operand] of Object.entries(value as Record<string, unknown>)) {
       const operatorFn = OPERATORS[operator as Operator]
       if (!operatorFn) throw new Error(`Invalid operator: ${operator}`)
       operatorFn(builder, column, operand as never)

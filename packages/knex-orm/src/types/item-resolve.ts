@@ -31,10 +31,10 @@ type ProcessRelationPath<
    RootTable extends TableNames<S>,
 > = TableRelation<S, N, RelName> extends infer TR
    ? TR extends HasManyRelationDefinition | ManyToManyRelationDefinition
-      ? ResolvePathWithRoot<S, TR['table'], RestPath, RootTable, N>[]
+      ? TR['table'] extends TableNames<S> ? ResolvePathWithRoot<S, TR['table'], RestPath, RootTable, N>[] : never
       : TR extends BelongsToRelationDefinition | HasOneRelationDefinition
-         ? ApplyNullable<ResolvePathWithRoot<S, TR['table'], RestPath, RootTable, N>, TR>
-         : ResolvePathWithRoot<S, TR['table'], RestPath, RootTable, N>
+         ? TR['table'] extends TableNames<S> ? ApplyNullable<ResolvePathWithRoot<S, TR['table'], RestPath, RootTable, N>, TR> : never
+         : never
    : never
 
 /** Resolve path on a relation's table while maintaining RootTable and ParentTable */
@@ -49,8 +49,8 @@ type ResolvePathWithRoot<
       ? ProcessWildcard<S, N, Rest, RootTable, ParentTable>
       : First extends TableRelationNames<S, N>
          ? Rest extends []
-            ? ProcessColumn<S, N, First>
-            : { [K in First]: ProcessRelationPath<S, N, K, Rest, RootTable> }
+            ? ProcessColumn<S, N, First & TableColumnNames<S, N, true>>
+            : { [K in First]: ProcessRelationPath<S, N, K & TableRelationNames<S, N>, Rest, RootTable> }
          : First extends TableColumnNames<S, N>
             ? ProcessColumn<S, N, First>
             : never
@@ -70,7 +70,7 @@ type ProcessAllRelationsWithPath<
 
 /** Merge columns with relations, letting relations override BelongsTo foreign keys */
 type MergeColumnsAndRelations<Base, Relations> = Prettify<
-   { [K in keyof Base | keyof Relations]: K extends keyof Relations ? Relations[K] : Base[K] }
+   { [K in keyof Base | keyof Relations]: K extends keyof Relations ? Relations[K] : K extends keyof Base ? Base[K] : never }
 >
 
 /** Process wildcard: * returns columns, *.* and deeper expand relations recursively */
@@ -97,8 +97,8 @@ type ResolvePath<
       ? ProcessWildcard<S, N, Rest, N, N>
       : First extends TableRelationNames<S, N>
          ? Rest extends []
-            ? ProcessColumn<S, N, First>
-            : { [K in First]: ProcessRelationPath<S, N, K, Rest, N> }
+            ? ProcessColumn<S, N, First & TableColumnNames<S, N, true>>
+            : { [K in First]: ProcessRelationPath<S, N, K & TableRelationNames<S, N>, Rest, N> }
          : First extends TableColumnNames<S, N>
             ? ProcessColumn<S, N, First>
             : never

@@ -16,7 +16,7 @@ export type FieldName<
    S extends Schema,
    T extends TableNames<S>,
    Deep = true,
-   RootTable = T,
+   RootTable extends TableNames<S> = T,
    Placeholder = true,
 > = TableColumnNames<S, T>
    | (Placeholder extends true

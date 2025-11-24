@@ -28,7 +28,7 @@ async function run() {
       console.log(`Applied ${result.operations.length} operations`)
    }
    finally {
-      await orm.destroy()
+      await orm.knex.destroy()
    }
 }
 

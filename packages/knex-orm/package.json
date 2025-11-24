@@ -17,14 +17,24 @@
    "exports": {
       ".": {
          "types": "./dist/index.d.ts",
-         "import": "./dist/index.js",
-         "require": "./dist/index.js"
+         "import": "./dist/index.mjs",
+         "require": "./dist/index.mjs"
+      },
+      "./extensions": {
+         "types": "./dist/extensions/index.d.ts",
+         "import": "./dist/extensions/index.mjs",
+         "require": "./dist/extensions/index.mjs"
+      },
+      "./bin/orm-migrate": {
+         "types": "./dist/bin/orm-migrate.d.ts",
+         "import": "./dist/bin/orm-migrate.mjs",
+         "require": "./dist/bin/orm-migrate.mjs"
       }
    },
-   "main": "dist/index.js",
+   "main": "dist/index.mjs",
    "types": "dist/index.d.ts",
    "bin": {
-      "knex-orm-migrate": "dist/bin/orm-migrate.js"
+      "knex-orm-migrate": "dist/bin/orm-migrate.mjs"
    },
    "files": [
       "dist"
@@ -34,25 +44,27 @@
    },
    "scripts": {
       "build": "unbuild",
-      "dev": "tsx watch src/index.ts",
       "lint": "eslint . --max-warnings=0",
       "typecheck": "tsc --noEmit",
       "test": "vitest run",
       "test:watch": "vitest"
    },
    "dependencies": {
+      "defu": "^6.1.4",
       "knex": "^3.1.0",
-      "mysql2": "^3.15.3",
+      "ohash": "^2.0.11",
       "pluralize": "^8.0.0",
-      "sqlite3": "^5.1.7",
       "zod": "^4.1.12"
    },
    "devDependencies": {
       "@types/pluralize": "^0.0.33",
+      "@yassidev/knex-orm": "workspace:*",
       "better-sqlite3": "^12.4.1",
       "mysql": "^2.18.1",
+      "mysql2": "^3.15.3",
       "pg": "^8.16.3",
       "pg-mem": "^3.0.5",
+      "sqlite3": "^5.1.7",
       "unbuild": "^3.2.0"
    }
 }

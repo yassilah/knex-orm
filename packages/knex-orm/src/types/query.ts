@@ -1,27 +1,27 @@
-import type { InferColumnType } from './columns'
+import type { ColumnDefinition, InferColumnType, TableColumnNames } from './columns'
 import type { FieldName } from './fields'
 import type { PickTableItemDotNotation, Prettify } from './helpers'
 import type { RelationForeignKeyColumn, RelationtableTable, TableRelation, TableRelationNames } from './relations'
 import type { Schema, TableItem, TableNames } from './schema'
-import type { DataType } from '@/utils/data-types'
 import type { InferOperatorExpectedValue, Operator } from '@/utils/operators'
 
 export interface FindQueryParams<S extends Schema, N extends TableNames<S>, C extends FieldName<S, N>[] = []> {
    columns?: C
    where?: FilterQuery<S, N>
-   orderBy?: `${'' | '-'}${FieldName<S, T, false>}`[]
+   orderBy?: `${'' | '-'}${FieldName<S, N, false>}`[]
    limit?: number
    offset?: number
 }
 
 /** Filter value for a column (value, array, or operator object) */
-type FieldFilter<T extends DataType = DataType>
+export type FieldFilter<T = unknown>
    = T | T[] | { [K in Operator]?: InferOperatorExpectedValue<K, T> }
 
 /** Filter type for field (supports relation filters) */
 type FieldFilterType<S extends Schema, N extends TableNames<S>, K extends keyof TableItem<S, N>>
    = K extends TableRelationNames<S, N> ? FieldFilter<InferColumnType<RelationForeignKeyColumn<S, TableRelation<S, N, K>>>> | FilterQuery<S, RelationtableTable<S, N, K>>
-      : FieldFilter<InferColumnType<S[N][K]>>
+      : K extends TableColumnNames<S, N> ? S[N][K] extends ColumnDefinition ? FieldFilter<InferColumnType<S[N][K]>> : never
+         : never
 
 export type FilterQuery<S extends Schema, N extends TableNames<S>> = Prettify<{
    [K in keyof TableItem<S, N>]?: FieldFilterType<S, N, K>

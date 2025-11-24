@@ -1,5 +1,6 @@
+import type { FieldDefinition } from './fields'
 import type { Merge, Prettify } from './helpers'
-import type { CollectionDefinition, FieldDefinition } from './schema'
+import type { CollectionDefinition } from './schema'
 
 /** Normalize collection with defaults applied to all fields */
 export type NormalizedCollectionDefinition<C extends CollectionDefinition> = Prettify<

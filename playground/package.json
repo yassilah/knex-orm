@@ -1,0 +1,6 @@
+{
+    "name": "playground",
+    "dependencies": {
+        "@yassidev/knex-orm": "workspace:*"
+    }
+}
