@@ -28,8 +28,18 @@ export type TableColumnNames<S extends Schema, T extends TableNames<S>, BelongsT
 export type TableColumn<S extends Schema, T extends TableNames<S>, K extends TableColumnNames<S, T>>
    = S[T][K]
 
+/** Helper to infer type with options support */
+type InferTypeWithOptions<T extends ColumnDefinition>
+   = DataType<T['type']> extends infer TT
+      ? T extends { options: (infer U)[] }
+         ? TT extends unknown[]
+            ? U[]
+            : U
+         : TT
+      : never
+
 /** Infer TypeScript type from column definition */
 export type InferColumnType<
    T extends ColumnDefinition,
    Nullable extends boolean | undefined = T['nullable'],
-> = Nullable extends true ? DataType<T['type']> | null : DataType<T['type']>
+> = Nullable extends true ? InferTypeWithOptions<T> | null : InferTypeWithOptions<T>

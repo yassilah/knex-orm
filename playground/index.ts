@@ -5,6 +5,7 @@ const schema = defineSchema({
         email: { type: 'varchar', unique: true, nullable: false },
         name: { type: 'varchar', nullable: false },
         posts: { type: 'has-many', foreignKey: 'author', table: 'posts' },
+        status: { type: 'enum', options: ['active', 'inactive'], nullable: false },
     }),
     posts: withDefaults({
         title: { type: 'varchar', nullable: false },

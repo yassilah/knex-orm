@@ -133,7 +133,7 @@ export type DataTypeDefinition<T extends DataTypes> = DataTypeGroupDefinition<T>
 export type DataTypeValidator<T extends DataTypes> = ReturnType<DataTypeDefinition<T>['validate']>
 export type DataTypeCreator<T extends DataTypes> = ReturnType<DataTypeDefinition<T>['create']>
 
-export type DataType<T extends DataTypes> = (DataTypeGroup<T> extends infer U
+type BaseDataType<T extends DataTypes> = DataTypeGroup<T> extends infer U
    ? U extends 'number' ? number
       : U extends 'string' ? string
          : U extends 'boolean' ? boolean
@@ -142,17 +142,19 @@ export type DataType<T extends DataTypes> = (DataTypeGroup<T> extends infer U
                   : U extends 'bigint' ? bigint | string
                      : U extends 'binary' ? Buffer
                         : never
-   : never) extends infer V ? T extends `${string}-array` ? unknown[] : V : never
+   : never
 
 type BuiltInDataTypes = {
    [K in keyof typeof DATA_TYPES]: keyof (typeof DATA_TYPES)[K]['types']
 }[keyof typeof DATA_TYPES] extends infer U ? U extends string ? U : never : never
 
 type BuiltInDataTypesMap = {
-   [K in BuiltInDataTypes]: true
+   [K in BuiltInDataTypes]: BaseDataType<K>
 }
 
 export interface DataTypesMap extends BuiltInDataTypesMap {}
+
+export type DataType<T extends DataTypes> = DataTypesMap[T]
 
 type DataTypeGroup<T extends keyof DataTypesMap> = {
    [K in keyof typeof DATA_TYPES]: T extends keyof (typeof DATA_TYPES)[K]['types'] ? K : never

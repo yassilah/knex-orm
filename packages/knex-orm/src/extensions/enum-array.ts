@@ -62,6 +62,6 @@ export default function install() {
 
 declare module '..' {
    interface DataTypesMap {
-      'enum-array': true
+      'enum-array': unknown[]
    }
 }

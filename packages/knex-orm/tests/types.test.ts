@@ -303,7 +303,7 @@ describe('type tests', () => {
                   permissions: {
                      id: number
                      name: string
-                     action: unknown[] | null
+                     action: ('read' | 'write' | 'delete')[] | null
                      collection: number | null
                      created_at: string | Date
                      updated_at: string | Date
@@ -352,7 +352,7 @@ describe('type tests', () => {
                   permissions: {
                      id: number
                      name: string
-                     action: unknown[] | null
+                     action: ('read' | 'write' | 'delete')[] | null
                      collection: {
                         id: number
                         name: string
